@@ -3142,6 +3142,9 @@
                 sel.appendChild(opt);
             });
 
+            // ESCUCHAR CAMBIO: Esto hace que aparezcan las materias al elegir el semestre
+            sel.addEventListener('change', loadOrganizerSubjects);
+
             // 2. Llenar el selector de Inclusión Flexible (Materias)
             subjectsData.forEach(semData => {
                 const optGroup = document.createElement('optgroup');
@@ -3157,9 +3160,8 @@
                 if (optGroup.children.length > 0) extSel.appendChild(optGroup);
             });
             
-            renderPersonalBlocksOrg();
+            if (typeof renderPersonalBlocksOrg === "function") renderPersonalBlocksOrg();
         }
-
         function showOrganizer() {
             currentActiveView = 'Organizador';
             document.getElementById('calendarWrapper').classList.add('hidden');
