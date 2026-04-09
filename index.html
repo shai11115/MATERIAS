@@ -2557,6 +2557,7 @@
                 <select class="modality-select shadow border rounded py-1 px-2 focus:outline-none flex-grow sm:flex-grow-0 text-sm w-full sm:w-auto">
                     <option value="Presencial" ${modality==='Presencial'?'selected':''}>🏫 Presencial</option>
                     <option value="Virtual" ${modality==='Virtual'?'selected':''}>💻 Virtual</option>
+                    <option value="Híbrida/Semipresencial" ${modality==='Híbrida/Semipresencial'?'selected':''}>🔄 Híbrida/Semipresencial</option>
                 </select>
                 
                 <select class="slot-type-select shadow border rounded py-1 px-2 focus:outline-none flex-grow sm:flex-grow-0 text-sm w-full sm:w-auto">
@@ -2581,7 +2582,7 @@
             div.querySelector('.slot-att-type').onchange = checkAttendanceReqVisibility;
             div.querySelector('.remove-slot-btn').onclick = () => { div.remove(); checkAttendanceReqVisibility(); };
         }
-
+    
         function populatePreviaFilterOptions(){
             const ySel=document.getElementById('filterPreviaYear'), sSel=document.getElementById('filterPreviaSemester');
             ySel.innerHTML='<option value="">Todos los Años</option>'; sSel.innerHTML='<option value="">Todos Semestres</option>';
