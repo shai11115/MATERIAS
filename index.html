@@ -1618,6 +1618,7 @@
             tbody.innerHTML = '';
             updateSemesterOverlaps(semesterData);
             
+            // Crear la cuadrícula base vacía
             for(let h=8; h<23; h++){
                 const startStr = `${String(h).padStart(2,'0')}:00`;
                 const endStr = `${String(h+1).padStart(2,'0')}:00`;
@@ -1628,146 +1629,125 @@
                     const td = document.createElement('td');
                     td.className = "schedule-cell-drop-zone";
                     td.dataset.day = day; td.dataset.time = startStr;
-                    
                     td.addEventListener('dragover', e => { e.preventDefault(); td.classList.add('drag-over'); });
                     td.addEventListener('dragleave', e => { td.classList.remove('drag-over'); });
                     td.addEventListener('drop', e => handleScheduleDrop(e, td.dataset.day, td.dataset.time));
-
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
             }
 
+            // Recopilar todos los slots y calcular superposiciones (lado a lado)
             const sameDayAllSlots = [];
             semesterData.subjects.forEach(s => s.schedule.forEach(sl => {
-                sameDayAllSlots.push({subId: s.id, ...sl});
+                const startMins = parseInt(sl.start.split(':')[0])*60 + parseInt(sl.start.split(':')[1]);
+                const endMins = parseInt(sl.end.split(':')[0])*60 + parseInt(sl.end.split(':')[1]);
+                sameDayAllSlots.push({subId: s.id, name: s.name, color: s.color, credits: s.credits, assignedCode: s.assignedCode, scheduleCode: s.scheduleCode, ...sl, startMins, endMins});
             }));
 
-            semesterData.subjects.forEach(sub => {
-                sub.schedule.forEach(slot => {
-                    const startParts = slot.start.split(':').map(Number);
-                    const endParts = slot.end.split(':').map(Number);
-                    const startHour = startParts[0], startMin = startParts[1];
-                    const endHour = endParts[0], endMin = endParts[1];
-                    
-                    if (startHour < 8 || startHour > 22) return; 
+            const dayGroups = { 'Lunes':[], 'Martes':[], 'Miércoles':[], 'Jueves':[], 'Viernes':[], 'Sábado':[], 'Domingo':[] };
+            sameDayAllSlots.forEach(s => dayGroups[s.day].push(s));
 
-                    const startMins = startHour * 60 + startMin;
-                    const endMins = endHour * 60 + endMin;
-                    let durationMins = endMins - startMins;
+            for(let d in dayGroups) {
+                dayGroups[d].sort((a,b) => a.startMins - b.startMins || a.endMins - b.endMins);
+                let clusters = [];
+                let curr = [];
+                let maxEnd = 0;
 
-                    let isExactOverlap = false;
-                    let exactColIndex = 0;
-                    let exactMaxCols = 1;
-                    
-                    let pushedDown = false;
-                    let maxOverlapEndMins = startMins;
-
-                    const myExactGroup = sameDayAllSlots.filter(s => s.day === slot.day && s.start === slot.start && s.end === slot.end);
-                    if (myExactGroup.length > 1) {
-                        isExactOverlap = true;
-                        myExactGroup.sort((a,b) => a.subId.localeCompare(b.subId));
-                        exactMaxCols = myExactGroup.length;
-                        exactColIndex = myExactGroup.findIndex(s => s.subId === sub.id);
-                    }
-
-                    if (!isExactOverlap) {
-                        sameDayAllSlots.forEach(other => {
-                            if (other.day !== slot.day || (other.subId === sub.id && other.start === slot.start)) return;
-                            const oStartParts = other.start.split(':').map(Number);
-                            const oEndParts = other.end.split(':').map(Number);
-                            const oStartMins = oStartParts[0]*60 + oStartParts[1];
-                            const oEndMins = oEndParts[0]*60 + oEndParts[1];
-
-                            if (oStartMins < startMins && oEndMins > startMins) {
-                                pushedDown = true;
-                                if (oEndMins > maxOverlapEndMins) maxOverlapEndMins = oEndMins;
-                            }
-                        });
-                    }
-
-                    const targetCell = Array.from(tbody.querySelectorAll(`td[data-day="${slot.day}"][data-time="${String(startHour).padStart(2,'0')}:00"]`))[0];
-                    
-                    if(targetCell) {
-                        const div = document.createElement('div');
-                        div.className = `schedule-entry ${slot.overlap ? 'overlap' : ''}`;
-                        const baseColor = sub.color || '#4299e1';
-                        div.style.borderLeftColor = baseColor;
-                        div.style.backgroundColor = baseColor + '40';
-                        div.style.color = 'var(--text-color)';
-                        
-                        let topPct = (startMin / 60) * 100;
-                        let heightPct = (durationMins / 60) * 100;
-
-                        if (isExactOverlap) {
-                            const w = 96 / exactMaxCols;
-                            const l = 2 + (exactColIndex * w);
-                            div.style.width = `calc(${w}% - 2px)`;
-                            div.style.left = `${l}%`;
-                            div.style.zIndex = `${11 + exactColIndex}`;
-                            div.style.top = `${topPct}%`;
-                            div.style.height = `calc(${heightPct}% - 1px)`;
-                        } else if (pushedDown) {
-                            const adjustedStartMins = maxOverlapEndMins;
-                            if (endMins > adjustedStartMins) {
-                                const relativeStartInCell = adjustedStartMins - (startHour * 60);
-                                topPct = (relativeStartInCell / 60) * 100;
-                                durationMins = endMins - adjustedStartMins;
-                                heightPct = (durationMins / 60) * 100;
-                            }
-                            div.style.top = `calc(${topPct}% + 1px)`;
-                            div.style.height = `calc(${heightPct}% - 1px)`;
-                            div.style.width = '96%';
-                            div.style.left = '2%';
-                            div.style.zIndex = '12';
+                // Agrupar elementos que se pisan entre sí
+                dayGroups[d].forEach(s => {
+                    if(curr.length === 0) {
+                        curr.push(s); maxEnd = s.endMins;
+                    } else {
+                        if(s.startMins < maxEnd) {
+                            curr.push(s); maxEnd = Math.max(maxEnd, s.endMins);
                         } else {
-                            div.style.top = `${topPct}%`;
-                            div.style.height = `calc(${heightPct}% - 1px)`;
-                            div.style.width = '96%';
-                            div.style.left = '2%';
-                            div.style.zIndex = '10';
+                            clusters.push(curr);
+                            curr = [s]; maxEnd = s.endMins;
                         }
-
-                        let extraCodes = [];
-                        if (sub.assignedCode && sub.assignedCode.trim() !== '') extraCodes.push(`Asig: ${sub.assignedCode}`);
-                        if (sub.scheduleCode !== null && sub.scheduleCode !== undefined && sub.scheduleCode !== '') extraCodes.push(`Hor: ${sub.scheduleCode}`);
-                        let extraCodesHtml = extraCodes.length > 0 ? `<span style="font-size: 0.75em; opacity: 0.85; font-weight: normal; margin-top: 1px; display: block;">${extraCodes.join(' | ')}</span>` : '';
-
-                        let aulaHtml = '';
-                        if (slot.aula && slot.aula.trim() !== '') {
-                            const isUrl = slot.aula.startsWith('http://') || slot.aula.startsWith('https://');
-                            const displayAula = isUrl ? 'Link' : slot.aula;
-                            aulaHtml = `<span style="font-size: 0.75em; opacity: 0.95; font-weight: bold; margin-top: 1px; display: block; color: inherit;">📍 ${displayAula}</span>`;
-                        }
-
-                        let modIcon = '';
-                        if(slot.modality === 'Virtual') modIcon = '💻 ';
-                        else if(slot.modality === 'Presencial') modIcon = '🏫 ';
-
-                        let typeHtml = '';
-                        if(slot.slotType && slot.slotType !== 'Otro') {
-                            typeHtml = `<span style="font-size: 0.75em; opacity: 0.95; font-weight: bold; margin-top: 1px; display: block; color: inherit;">${slot.slotType}</span>`;
-                        }
-
-                        div.innerHTML = `<span>${modIcon}${sub.name}</span>${typeHtml}<span style="font-size: 0.8em; opacity: 0.85; font-weight: normal; margin-top: 1px;">(${sub.credits} cr)</span>${extraCodesHtml}${aulaHtml}<span class="entry-time">${slot.start} - ${slot.end}</span>`;
-                        
-                        div.draggable = true;
-                        div.addEventListener('dragstart', e => {
-                            e.dataTransfer.setData('text/plain', 'SCHED:' + JSON.stringify({id: sub.id, oDay: slot.day, oStart: slot.start, oEnd: slot.end}));
-                            setTimeout(() => {
-                                div.classList.add('dragging');
-                                document.querySelectorAll('.schedule-entry').forEach(el => el.style.pointerEvents = 'none');
-                            }, 0);
-                        });
-                        div.addEventListener('dragend', e => {
-                            div.classList.remove('dragging');
-                            document.querySelectorAll('.schedule-cell-drop-zone').forEach(c => c.classList.remove('drag-over'));
-                            document.querySelectorAll('.schedule-entry').forEach(el => el.style.pointerEvents = '');
-                        });
-
-                        targetCell.appendChild(div);
                     }
                 });
+                if(curr.length > 0) clusters.push(curr);
+
+                // Asignar columnas equitativas
+                clusters.forEach(cluster => {
+                    let columns = [];
+                    cluster.forEach(s => {
+                        let placed = false;
+                        for(let i=0; i<columns.length; i++) {
+                            if(s.startMins >= columns[i][columns[i].length-1].endMins) {
+                                columns[i].push(s); s.col = i; placed = true; break;
+                            }
+                        }
+                        if(!placed) { s.col = columns.length; columns.push([s]); }
+                    });
+                    cluster.forEach(s => s.maxCols = columns.length);
+                });
+            }
+
+            // Dibujar los divs en la tabla
+            sameDayAllSlots.forEach(slot => {
+                const startHour = Math.floor(slot.startMins / 60);
+                const startMin = slot.startMins % 60;
+                const durationMins = slot.endMins - slot.startMins;
+                
+                if (startHour < 8 || startHour > 22) return; 
+
+                const targetCell = Array.from(tbody.querySelectorAll(`td[data-day="${slot.day}"][data-time="${String(startHour).padStart(2,'0')}:00"]`))[0];
+                if(targetCell) {
+                    const div = document.createElement('div');
+                    div.className = `schedule-entry ${slot.overlap ? 'overlap' : ''}`;
+                    const baseColor = slot.color || '#4299e1';
+                    div.style.borderLeftColor = baseColor;
+                    div.style.backgroundColor = baseColor + '40';
+                    div.style.color = 'var(--text-color)';
+                    
+                    // Cálculos proporcionales
+                    const topPct = (startMin / 60) * 100;
+                    const heightPct = (durationMins / 60) * 100;
+                    const w = 96 / slot.maxCols;
+                    const l = 2 + (slot.col * w);
+
+                    div.style.top = `${topPct}%`;
+                    div.style.height = `calc(${heightPct}% - 1px)`;
+                    div.style.width = `calc(${w}% - 2px)`;
+                    div.style.left = `${l}%`;
+                    div.style.zIndex = `${10 + slot.col}`;
+
+                    // Códigos extra
+                    let extraCodes = [];
+                    if (slot.assignedCode && slot.assignedCode.trim() !== '') extraCodes.push(`Asig: ${slot.assignedCode}`);
+                    if (slot.scheduleCode !== null && slot.scheduleCode !== undefined && slot.scheduleCode !== '') extraCodes.push(`Hor: ${slot.scheduleCode}`);
+                    let extraCodesHtml = extraCodes.length > 0 ? `<span style="font-size: 0.75em; opacity: 0.85; font-weight: normal; margin-top: 1px; display: block;">${extraCodes.join(' | ')}</span>` : '';
+
+                    let aulaHtml = '';
+                    if (slot.aula && slot.aula.trim() !== '') {
+                        const isUrl = slot.aula.startsWith('http://') || slot.aula.startsWith('https://');
+                        aulaHtml = `<span style="font-size: 0.75em; opacity: 0.95; font-weight: bold; margin-top: 1px; display: block; color: inherit;">📍 ${isUrl ? 'Link' : slot.aula}</span>`;
+                    }
+
+                    // AQUI ESTÁN LOS ICONOS HÍBRIDOS
+                    let modIcon = '';
+                    if(slot.modality === 'Virtual') modIcon = '💻 ';
+                    else if(slot.modality === 'Presencial') modIcon = '🏫 ';
+                    else if(slot.modality === 'Híbrida/Semipresencial') modIcon = '🏫💻 ';
+
+                    let typeHtml = '';
+                    if(slot.slotType && slot.slotType !== 'Otro') {
+                        typeHtml = `<span style="font-size: 0.75em; opacity: 0.95; font-weight: bold; margin-top: 1px; display: block; color: inherit;">${slot.slotType}</span>`;
+                    }
+
+                    div.innerHTML = `<span>${modIcon}${slot.name}</span>${typeHtml}<span style="font-size: 0.8em; opacity: 0.85; font-weight: normal; margin-top: 1px;">(${slot.credits} cr)</span>${extraCodesHtml}${aulaHtml}<span class="entry-time">${slot.start} - ${slot.end}</span>`;
+                    
+                    div.draggable = true;
+                    div.addEventListener('dragstart', e => {
+                        e.dataTransfer.setData('text/plain', 'SCHED:' + JSON.stringify({id: slot.subId, oDay: slot.day, oStart: slot.start, oEnd: slot.end}));
+                        setTimeout(() => div.classList.add('dragging'), 0);
+                    });
+                    div.addEventListener('dragend', e => div.classList.remove('dragging'));
+
+                    targetCell.appendChild(div);
+                }
             });
         }
 
