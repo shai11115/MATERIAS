@@ -3909,6 +3909,232 @@
         statusSelect.dispatchEvent(new Event('change'));
     }
 
+    /* =========================================================
+   LÓGICA DEL GENERADOR INTELIGENTE DE HORARIOS
+========================================================= */
+
+document.getElementById('btnGenerateSchedule').onclick = function() {
+    const container = document.getElementById('orgProposalsList');
+    const resultsWrapper = document.getElementById('orgResultsContainer');
+    const alertCont = document.getElementById('orgAlertContainer');
+    
+    container.innerHTML = '';
+    alertCont.classList.add('hidden');
+    resultsWrapper.classList.remove('hidden');
+
+    // 1. Utilidades de tiempo
+    const timeToMins = t => { const [h,m] = t.split(':').map(Number); return (h * 60) + m; };
+    const minsToTime = m => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+
+    // 2. Obtener y fusionar los turnos seleccionados
+    let shiftRanges = [];
+    if (document.getElementById('orgShiftMorning').checked) shiftRanges.push([timeToMins(document.getElementById('orgMorningStart').value), timeToMins(document.getElementById('orgMorningEnd').value)]);
+    if (document.getElementById('orgShiftAfternoon').checked) shiftRanges.push([timeToMins(document.getElementById('orgAfternoonStart').value), timeToMins(document.getElementById('orgAfternoonEnd').value)]);
+    if (document.getElementById('orgShiftNight').checked) shiftRanges.push([timeToMins(document.getElementById('orgNightStart').value), timeToMins(document.getElementById('orgNightEnd').value)]);
+
+    if (shiftRanges.length === 0) {
+        showAlert('Error', 'Debes seleccionar al menos un turno (Mañana, Tarde o Noche).');
+        return;
+    }
+
+    // Fusionar turnos superpuestos o continuos (ej: Mañana y Tarde)
+    shiftRanges.sort((a,b) => a[0] - b[0]);
+    let mergedShifts = [];
+    let curr = shiftRanges[0];
+    for(let i = 1; i < shiftRanges.length; i++) {
+        if(shiftRanges[i][0] <= curr[1]) curr[1] = Math.max(curr[1], shiftRanges[i][1]);
+        else { mergedShifts.push(curr); curr = shiftRanges[i]; }
+    }
+    mergedShifts.push(curr);
+
+    const isSlotInShifts = (startMins, endMins) => mergedShifts.some(r => startMins >= r[0] && endMins <= r[1]);
+
+    // 3. Recopilar materias activas y sus grupos de la interfaz
+    const subjectsToPlan = [];
+    document.querySelectorAll('.org-option-box').forEach(box => {
+        if (!box.querySelector('.org-sub-include').checked) return;
+        
+        const subId = box.dataset.subjectId;
+        const isFlexible = box.querySelector('.org-sub-flexible')?.checked || false;
+        const sub = getSubjectById(subId) || orgExternalSubjects.find(s => s.id === subId);
+        if(!sub) return;
+
+        // Recopilar grupos activos de esta materia
+        const groups = [];
+        box.querySelectorAll('.org-group-item').forEach(gItem => {
+            if(!gItem.querySelector('.org-grp-active').checked) return;
+            const gName = gItem.querySelector('.text-xs.font-bold').textContent;
+            
+            // Buscar los horarios de este grupo que calcen en los turnos
+            const groupSlots = sub.schedule.filter(s => (s.groupName || 'Grupo Único') === gName);
+            if(groupSlots.length === 0) return;
+
+            let valid = true;
+            let parsedSlots = [];
+            for(let s of groupSlots) {
+                const start = timeToMins(s.start);
+                const end = timeToMins(s.end);
+                if(!isSlotInShifts(start, end)) valid = false; // El bloque sale de los turnos permitidos
+                parsedSlots.push({...s, startMins: start, endMins: end});
+            }
+
+            if(valid) groups.push({ name: gName, slots: parsedSlots });
+        });
+
+        if(groups.length > 0) {
+            subjectsToPlan.push({ id: sub.id, name: sub.name, color: sub.color || '#3b82f6', isFlexible, groups });
+        }
+    });
+
+    if (subjectsToPlan.length === 0) {
+        showAlert('Sin resultados', 'Ninguna de las materias seleccionadas tiene horarios que encajen en los turnos elegidos.');
+        return;
+    }
+
+    // 4. Algoritmo de Combinaciones (Fuerza Bruta Optimizado)
+    let validCombinations = [];
+    
+    function checkOverlap(combo, newGroup) {
+        for (let sub of combo) {
+            for (let s1 of sub.group.slots) {
+                for (let s2 of newGroup.slots) {
+                    if (s1.day === s2.day && s1.startMins < s2.endMins && s1.endMins > s2.startMins) {
+                        return true; // Hay superposición
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    function buildCombinations(idx, currentCombo) {
+        if (idx === subjectsToPlan.length) {
+            validCombinations.push([...currentCombo]);
+            return;
+        }
+        const currentSub = subjectsToPlan[idx];
+        
+        // Intentar con cada grupo de la materia actual
+        let added = false;
+        for (let group of currentSub.groups) {
+            if (!checkOverlap(currentCombo, group)) {
+                currentCombo.push({ subject: currentSub, group: group });
+                buildCombinations(idx + 1, currentCombo);
+                currentCombo.pop();
+                added = true;
+            }
+        }
+        
+        // Si la materia es flexible y no calza, podemos omitirla y seguir
+        if (currentSub.isFlexible) {
+            buildCombinations(idx + 1, currentCombo);
+        }
+    }
+
+    buildCombinations(0, []);
+
+    // 5. Filtrar, Puntuar y Clasificar
+    if (validCombinations.length === 0) {
+        showAlert('Conflicto de Horarios', 'No fue posible armar un horario sin superposiciones con estos turnos.');
+        return;
+    }
+
+    // Limpiar combinaciones vacías
+    validCombinations = validCombinations.filter(c => c.length > 0);
+
+    const scoredCombinations = validCombinations.map(combo => {
+        let daysUsed = new Set();
+        let totalGapsMins = 0;
+        
+        // Agrupar por día para calcular huecos
+        let byDay = {};
+        combo.forEach(c => {
+            c.group.slots.forEach(s => {
+                daysUsed.add(s.day);
+                if(!byDay[s.day]) byDay[s.day] = [];
+                byDay[s.day].push(s);
+            });
+        });
+
+        for(let d in byDay) {
+            byDay[d].sort((a,b) => a.startMins - b.startMins);
+            for(let i = 0; i < byDay[d].length - 1; i++) {
+                totalGapsMins += Math.max(0, byDay[d][i+1].startMins - byDay[d][i].endMins);
+            }
+        }
+
+        return { combo, daysCount: daysUsed.size, gaps: totalGapsMins, subjectCount: combo.length };
+    });
+
+    // Ordenar para buscar los mejores (prioriza más materias, luego menos huecos, luego menos días)
+    scoredCombinations.sort((a, b) => {
+        if(b.subjectCount !== a.subjectCount) return b.subjectCount - a.subjectCount;
+        if(a.gaps !== b.gaps) return a.gaps - b.gaps;
+        return a.daysCount - b.daysCount;
+    });
+
+    // Extraer Destacados
+    const bestCompact = scoredCombinations[0]; // El primero tras ordenar tiene menos gaps
+    
+    // Buscar el de menos días (que tenga la misma cantidad de materias máximas)
+    let maxSubs = scoredCombinations[0].subjectCount;
+    let bestFreeDays = scoredCombinations.filter(c => c.subjectCount === maxSubs).sort((a, b) => a.daysCount - b.daysCount)[0];
+
+    // 6. Renderizar Resultados
+    let renderCount = 0;
+    
+    // Función auxiliar para dibujar tarjetas
+    const renderCard = (title, data, badgeColor) => {
+        renderCount++;
+        const card = document.createElement('div');
+        card.className = 'org-proposal-card relative overflow-hidden';
+        
+        const badge = title ? `<div class="absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-lg" style="background-color: ${badgeColor};">${title}</div>` : '';
+        
+        let listHtml = data.combo.map(c => `
+            <div class="flex items-center gap-2 mb-1">
+                <span class="w-3 h-3 rounded-full" style="background-color: ${c.subject.color}"></span>
+                <span class="font-bold text-sm">${c.subject.name}</span>
+                <span class="text-xs text-gray-500">(${c.group.name})</span>
+            </div>
+        `).join('');
+
+        card.innerHTML = `
+            ${badge}
+            <h4 class="font-bold mb-2 ${title ? 'mt-2' : ''}">Opción ${renderCount}</h4>
+            <div class="mb-4">${listHtml}</div>
+            <div class="flex gap-4 text-xs font-semibold text-gray-600 dark:text-gray-400 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span>📅 Días de cursada: ${data.daysCount}</span>
+                <span>⏳ Huecos libres: ${Math.floor(data.gaps / 60)}h ${data.gaps % 60}m</span>
+                <span>📚 Materias: ${data.subjectCount}</span>
+            </div>
+        `;
+        container.appendChild(card);
+    };
+
+    // Imprimir Destacados (Categorías)
+    renderCard('🔥 Más Compacto (Menos Huecos)', bestCompact, '#eab308');
+    
+    if(bestFreeDays && bestFreeDays !== bestCompact) {
+        renderCard('✈️ Más Días Libres', bestFreeDays, '#3b82f6');
+    }
+
+    // Imprimir el resto como opciones generales (hasta 10 para no saturar)
+    let othersRendered = 0;
+    for(let i = 0; i < scoredCombinations.length; i++) {
+        if(scoredCombinations[i] === bestCompact || scoredCombinations[i] === bestFreeDays) continue;
+        renderCard('', scoredCombinations[i], ''); // Sin categoría
+        othersRendered++;
+        if(othersRendered >= 8) break; // Límite de opciones adicionales
+    }
+
+    function showAlert(title, msg) {
+        alertCont.innerHTML = `<div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert"><p class="font-bold">${title}</p><p>${msg}</p></div>`;
+        alertCont.classList.remove('hidden');
+        resultsWrapper.classList.remove('hidden');
+    }
+};
+    
     </script>
 </body>
     </html>
