@@ -2864,7 +2864,6 @@
             const ty = document.getElementById('editSubjectType').value;
             const subType = document.getElementById('editSubjectSubtype').value.trim(); 
             
-            // VARIABLES CORREGIDAS (Aquí estaba el bloque de HTML erróneo)
             const sc = document.getElementById('editScheduleCode').value;
             const as = document.getElementById('editAssignedCode').value;
             const attReq = document.getElementById('editSubjectAttendanceRequired').value;
@@ -2878,7 +2877,7 @@
             if(!n || isNaN(cr) || cr<=0){ showCustomAlert('Error', 'Nombre y créditos requeridos.'); return; }
 
             const sched=[]; let err=false;
-            let countVirtual = 0; let countPresencial = 0;
+            let countVirtual = 0; let countPresencial = 0; let countHibrida = 0;
 
             document.querySelectorAll('#editSubjectScheduleContainer > div').forEach(d=>{
                 const day=d.querySelector('.day-select').value, st=d.querySelector('.start-time-input').value, ed=d.querySelector('.end-time-input').value;
@@ -2890,14 +2889,16 @@
                 
                 if (modality === 'Virtual') countVirtual++;
                 else if (modality === 'Presencial') countPresencial++;
+                else if (modality === 'Híbrida/Semipresencial') countHibrida++;
 
                 sched.push({day, start:st, end:ed, aula, modality, slotType, attendanceType: slotAttType});
             });
             if(err){ showCustomAlert('Error', 'Los horarios ingresados no son válidos (revisa que la hora de fin sea mayor que la de inicio).'); return; }
 
             let autoDeliveryType = 'Presencial';
-            if (countVirtual > 0 && countPresencial === 0) autoDeliveryType = 'A Distancia';
-            else if (countVirtual > 0 && countPresencial > 0) autoDeliveryType = 'Semipresencial/Hibrida';
+            if (countVirtual > 0 && countPresencial === 0 && countHibrida === 0) autoDeliveryType = 'Virtual';
+            else if (countVirtual > 0 && countPresencial > 0) autoDeliveryType = 'Híbrida/Semipresencial';
+            else if (countHibrida > 0) autoDeliveryType = 'Híbrida/Semipresencial';
 
             const tSem = subjectsData.find(s=>s.year===y && s.semester===sem);
             if(id){
