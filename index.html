@@ -2471,10 +2471,12 @@
             document.getElementById('modalTitle').textContent = `Agregar Materia a ${year} - Semestre ${sem}`;
             document.getElementById('editSubjectForm').reset();
             document.getElementById('editSubjectId').value = ''; document.getElementById('editSubjectYear').value = year; document.getElementById('editSubjectSemester').value = sem;
-            document.getElementById('editSubjectScheduleContainer').innerHTML = '';
+           document.getElementById('editSubjectScheduleContainer').innerHTML = '';
             document.getElementById('quickAula').value = '';
             
             document.getElementById('editSubjectAttendanceRequired').value = careerSettings.attendanceRequired || 75;
+            document.getElementById('editSubjectPassPct').value = 75;
+            document.getElementById('editSubjectRegPct').value = 50;
             document.getElementById('editAttReqDiv').classList.add('hidden');
 
             document.getElementById('editSubjectColor').value = PREDEFINED_COLORS[0];
