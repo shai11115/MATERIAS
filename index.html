@@ -3133,29 +3133,28 @@
             const sel = document.getElementById('orgSemesterSelect'); sel.innerHTML = '';
             const extSel = document.getElementById('orgExternalSubjectSelect'); extSel.innerHTML = '<option value="">(Seleccionar materia del plan)</option>';
             
-            subjectsData.forEach(y => {
-                y.subjects.forEach(sem => {
-                    const opt = document.createElement('option');
-                    opt.value = `${y.year}|${sem.semester}`;
-                    opt.textContent = `${y.year} - Semestre ${sem.semester}`;
-                    sel.appendChild(opt);
-                });
+            // 1. Llenar el selector de Semestre Base
+            subjectsData.forEach(semData => {
+                const opt = document.createElement('option');
+                opt.value = `${semData.year}|${semData.semester}`;
+                // Muestra el año y el nombre (personalizado o no) del semestre
+                opt.textContent = `${semData.year} - Semestre ${semData.semester}`;
+                sel.appendChild(opt);
             });
 
-            subjectsData.forEach(y => {
-                y.subjects.forEach(sem => {
-                    const optGroup = document.createElement('optgroup');
-                    optGroup.label = `${y.year} - Sem. ${sem.semester}`;
-                    sem.subjects.forEach(sub => {
-                        if (!completedSubjects.has(sub.id)) {
-                            const opt = document.createElement('option');
-                            opt.value = sub.id;
-                            opt.textContent = sub.name;
-                            optGroup.appendChild(opt);
-                        }
-                    });
-                    if (optGroup.children.length > 0) extSel.appendChild(optGroup);
+            // 2. Llenar el selector de Inclusión Flexible (Materias)
+            subjectsData.forEach(semData => {
+                const optGroup = document.createElement('optgroup');
+                optGroup.label = `${semData.year} - Sem. ${semData.semester}`;
+                semData.subjects.forEach(sub => {
+                    if (!completedSubjects.has(sub.id)) {
+                        const opt = document.createElement('option');
+                        opt.value = sub.id;
+                        opt.textContent = sub.name;
+                        optGroup.appendChild(opt);
+                    }
                 });
+                if (optGroup.children.length > 0) extSel.appendChild(optGroup);
             });
             
             renderPersonalBlocksOrg();
