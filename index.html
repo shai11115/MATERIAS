@@ -3327,15 +3327,19 @@
                     </select>
                     
                     <input type="time" class="new-start shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    <span class="text-xs font-bold">a</span>
+                        <span class="text-xs font-bold">a</span>
                     <input type="time" class="new-end shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
                     
                     <select class="new-type shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Teórico">Teórico</option><option value="Práctico">Práctico</option><option value="Laboratorio">Laboratorio</option>
+                        <option value="Teórico">Teórico</option><option value="Práctico">Práctico</option><option value="Teórico-Práctico">Teórico-Práctico</option><option value="Laboratorio">Laboratorio</option><option value="Consulta">Consulta</option><option value="Taller">Taller</option><option value="Otro">Otro</option>
                     </select>
 
                     <select class="new-mod shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Presencial">🏫 Presencial</option><option value="Virtual">💻 Virtual</option>
+                        <option value="Presencial">🏫 Presencial</option><option value="Virtual">💻 Virtual</option><option value="Híbrida/Semipresencial">🔄 Híbrida</option>
+                    </select>
+                    
+                    <select class="new-att shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="Controlada">Ctrl (Controlada)</option><option value="Libre">Libre</option>
                     </select>
                 </div>
                 <div class="flex gap-2 w-full justify-end mt-1">
@@ -3353,6 +3357,7 @@
                 const end = div.querySelector('.new-end').value;
                 const type = div.querySelector('.new-type').value;
                 const mod = div.querySelector('.new-mod').value;
+                const att = div.querySelector('.new-att').value;
                 
                 if(!start || !end) {
                     showCustomAlert('Error', 'Debes ingresar la hora de inicio y fin.');
@@ -3373,7 +3378,7 @@
                     modality: mod,
                     slotType: type,
                     aula: '',
-                    attendanceType: 'Controlada'
+                    attendanceType: att
                 });
 
                 if(!isExternal) saveSubjectsData();
