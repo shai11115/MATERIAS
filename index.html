@@ -3268,7 +3268,6 @@
             if (slots.length > 0) {
                 slotsDesc = slots.map(s => {
                     const icon = s.modality === 'Virtual' ? '💻' : '🏫';
-                    // Se añade el botón para eliminar un bloque de horario específico (X)
                     return `<span class="org-slot-indicator flex items-center gap-1 shadow-sm" style="background-color: ${color}">${s.day.substring(0,3)} ${s.start}-${s.end} ${icon} <button type="button" onclick="deleteOrgSlot('${subId}', ${s.originalIndex})" class="text-white hover:text-red-300 font-bold ml-1 leading-none bg-black bg-opacity-20 rounded-full w-4 h-4 flex items-center justify-center transition" title="Eliminar este bloque">&times;</button></span>`;
                 }).join(' ');
             }
@@ -3278,8 +3277,10 @@
                     <span class="text-xs font-bold w-20 truncate" style="color: ${color}" title="${groupName}">${groupName}</span>
                     <div class="flex-grow flex flex-wrap gap-1 items-center">
                         ${slotsDesc || '<span class="text-xs text-red-500">Sin horario definido.</span>'}
+                        <button type="button" onclick="addOrgSlotGroup('${subId}', '${groupName}')" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-bold ml-2 transition" title="Añadir otro día/horario a esta opción">+ Añadir día</button>
                     </div>
-                    <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="org-grp-active w-3 h-3 accent-blue-500" checked> Activo</label>
+                    <button type="button" onclick="editOrgGroup('${subId}', '${groupName}')" class="text-gray-500 hover:text-gray-700 text-xs ml-2 border border-gray-300 dark:border-gray-600 px-1 rounded bg-white dark:bg-gray-700" title="Editar Nombre de la Opción">✏️ Renombrar</button>
+                    <label class="flex items-center gap-1 text-xs cursor-pointer ml-2"><input type="checkbox" class="org-grp-active w-3 h-3 accent-blue-500" checked> Activo</label>
                 </div>
             `;
         }
