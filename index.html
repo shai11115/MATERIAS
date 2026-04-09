@@ -3191,7 +3191,7 @@
 
             const allSubsToPlan = [...semData.subjects];
             orgExternalSubjects.forEach(ext => {
-                if(!allSubsToPlan.find(s => s.id === ext.id)) allSubsToPlan.push(ext);
+                if(!allSubsToPlan.find(sub => sub.id === ext.id)) allSubsToPlan.push(ext);
             });
 
             if (allSubsToPlan.length === 0) {
@@ -3207,16 +3207,18 @@
                 box.dataset.credits = sub.credits || 0;
                 
                 const isOp = (sub.type === 'Opcional' || sub.type === 'Optativa/Opcional' || sub.type === 'Electiva');
+                const subColor = sub.color || '#3b82f6';
                 
+                // Aplicamos el color de la materia al borde izquierdo
                 box.innerHTML = `
-                    <div class="flex justify-between items-center mb-2 flex-wrap gap-2">
+                    <div class="flex justify-between items-center mb-2 flex-wrap gap-2" style="border-left: 4px solid ${subColor}; padding-left: 8px;">
                         <div class="font-bold flex items-center gap-2">
                             <input type="checkbox" class="org-sub-include w-4 h-4 accent-blue-500" checked>
                             ${sub.name} <span class="text-xs font-normal text-gray-500 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${sub.type} - ${sub.credits}cr</span>
                         </div>
                         <div class="flex gap-2 items-center text-xs">
                             ${isOp ? `<label class="flex items-center gap-1 cursor-pointer" title="Permitir que el algoritmo escoja si incluye esta optativa o no para optimizar créditos/horarios"><input type="checkbox" class="org-sub-flexible w-3 h-3 accent-purple-500" checked> Flexible (Intercambiable)</label>` : ''}
-                            <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded transition text-xs font-bold" onclick="addOrgSlotGroup('${sub.id}')">+ Añadir Grupo Horario</button>
+                            <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded transition text-xs font-bold" onclick="addOrgSlotGroup('${sub.id}')">+ Añadir Horario</button>
                         </div>
                     </div>
                     <div class="org-sub-groups space-y-2 mt-2"></div>
@@ -3224,108 +3226,159 @@
                 
                 const groupsCont = box.querySelector('.org-sub-groups');
                 
+                // Agrupamos los horarios usando el nuevo campo "groupName"
                 if (sub.schedule && sub.schedule.length > 0) {
-                    const daysMap = {};
-                    sub.schedule.forEach(slot => {
-                        const k = `${slot.start}-${slot.end}`;
-                        if(!daysMap[k]) daysMap[k] = [];
-                        daysMap[k].push(slot);
+                    const groupsMap = {};
+                    sub.schedule.forEach((slot, index) => {
+                        const k = slot.groupName || 'Grupo Único';
+                        if(!groupsMap[k]) groupsMap[k] = [];
+                        groupsMap[k].push({ ...slot, originalIndex: index });
                     });
                     
-                    let grpIdx = 1;
-                    for (const k in daysMap) {
-                        const slots = daysMap[k];
-                        const html = createOrgGroupHTML(sub.id, grpIdx, slots);
+                    for (const grpName in groupsMap) {
+                        const slots = groupsMap[grpName];
+                        const html = createOrgGroupHTML(sub.id, grpName, slots, subColor);
                         groupsCont.insertAdjacentHTML('beforeend', html);
-                        grpIdx++;
                     }
                 } else {
-                    groupsCont.insertAdjacentHTML('beforeend', createOrgGroupHTML(sub.id, 1, []));
+                    groupsCont.insertAdjacentHTML('beforeend', createOrgGroupHTML(sub.id, 'Sin Horario', [], subColor));
                 }
 
                 cont.appendChild(box);
             });
         }
 
-        function createOrgGroupHTML(subId, groupId, slots = []) {
+        function createOrgGroupHTML(subId, groupName, slots = [], color = '#3b82f6') {
             let slotsDesc = '';
             if (slots.length > 0) {
                 slotsDesc = slots.map(s => {
                     const icon = s.modality === 'Virtual' ? '💻' : '🏫';
-                    return `<span class="org-slot-indicator bg-blue-500">${s.day.substring(0,3)} ${s.start}-${s.end} ${icon}</span>`;
+                    // Se añade el botón para eliminar un bloque de horario específico (X)
+                    return `<span class="org-slot-indicator flex items-center gap-1 shadow-sm" style="background-color: ${color}">${s.day.substring(0,3)} ${s.start}-${s.end} ${icon} <button type="button" onclick="deleteOrgSlot('${subId}', ${s.originalIndex})" class="text-white hover:text-red-300 font-bold ml-1 leading-none bg-black bg-opacity-20 rounded-full w-4 h-4 flex items-center justify-center transition" title="Eliminar este bloque">&times;</button></span>`;
                 }).join(' ');
             }
             
             return `
                 <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 flex flex-wrap gap-2 items-center org-group-item">
-                    <span class="text-xs font-bold text-gray-500 w-16">Grupo ${groupId}</span>
+                    <span class="text-xs font-bold w-20 truncate" style="color: ${color}" title="${groupName}">${groupName}</span>
                     <div class="flex-grow flex flex-wrap gap-1 items-center">
-                        ${slotsDesc || '<span class="text-xs text-red-500">Sin horario definido. Configúralo en la materia.</span>'}
+                        ${slotsDesc || '<span class="text-xs text-red-500">Sin horario definido.</span>'}
                     </div>
                     <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="checkbox" class="org-grp-active w-3 h-3 accent-blue-500" checked> Activo</label>
                 </div>
             `;
         }
 
-        function addOrgPersonalBlock() {
-            const d = document.getElementById('orgBlockDay').value;
-            const s = document.getElementById('orgBlockStart').value;
-            const e = document.getElementById('orgBlockEnd').value;
-            const n = document.getElementById('orgBlockName').value.trim();
-            if(!s || !e) return;
-            orgPersonalBlocks.push({day: d, start: s, end: e, name: n || 'Bloqueo'});
-            renderPersonalBlocksOrg();
-        }
-
-        function renderPersonalBlocksOrg() {
-            const cont = document.getElementById('orgPersonalBlocksList');
-            cont.innerHTML = '';
-            orgPersonalBlocks.forEach((b, i) => {
-                const div = document.createElement('div');
-                div.className = 'flex justify-between items-center bg-gray-100 dark:bg-gray-700 p-2 rounded border border-gray-300 dark:border-gray-600 text-xs mt-1';
-                div.innerHTML = `<span><strong class="text-blue-500 dark:text-blue-400">${b.day}</strong>: ${b.start} a ${b.end} - ${b.name}</span><button type="button" class="text-red-500 hover:text-red-700 font-bold ml-2 text-sm" onclick="removeOrgPersonalBlock(${i})">&times;</button>`;
-                cont.appendChild(div);
-            });
-        }
-
-        function removeOrgPersonalBlock(idx) {
-            orgPersonalBlocks.splice(idx, 1);
-            renderPersonalBlocksOrg();
-        }
-
-        function addExternalSubjectOrg() {
-            const sel = document.getElementById('orgExternalSubjectSelect');
-            if(!sel.value) return;
-            const sub = getSubjectById(sel.value);
-            if(sub) {
-                if(!orgExternalSubjects.find(s => s.id === sub.id)) {
-                    orgExternalSubjects.push(JSON.parse(JSON.stringify(sub)));
-                    loadOrganizerSubjects();
-                    showCustomAlert('Añadida', `Materia "${sub.name}" importada exitosamente al planificador.`);
-                } else {
-                    showCustomAlert('Aviso', 'La materia ya se encuentra en el planificador.');
-                }
+        window.deleteOrgSlot = function(subId, slotIndex) {
+            let isExternal = false;
+            let sub = findSubjectAndSemesterById(subId)?.subject;
+            if (!sub) {
+                sub = orgExternalSubjects.find(s => s.id === subId);
+                isExternal = true;
             }
-        }
+            if (!sub) return;
 
-        function addAdHocSubjectOrg() {
-            const n = document.getElementById('orgAdHocName').value.trim();
-            const c = parseInt(document.getElementById('orgAdHocCredits').value) || 0;
-            if(!n) {
-                showCustomAlert('Error', 'Debes ingresar un nombre para la materia.');
-                return;
+            if(confirm('¿Estás seguro de eliminar este bloque de horario?')) {
+                sub.schedule.splice(slotIndex, 1); // Borramos el horario exacto
+                if(!isExternal) saveSubjectsData();
+                loadOrganizerSubjects(); // Recargamos la vista
             }
-            orgExternalSubjects.push({
-                id: generateUniqueId(), name: n, credits: c, type: 'Ad-Hoc',
-                schedule: [], previas: [], color: PREDEFINED_COLORS[Math.floor(Math.random()*PREDEFINED_COLORS.length)]
-            });
-            document.getElementById('orgAdHocName').value = '';
-            document.getElementById('orgAdHocCredits').value = '';
-            loadOrganizerSubjects();
-        }
+        };
 
         function addOrgSlotGroup(subId) {
-            showCustomAlert('Gestión de Horarios', 'Para añadir nuevos bloques de horario, por favor edita la materia desde el Calendario Lectivo Principal (Pestaña "Calendario Lectivo"), o importa los horarios usando el botón "📥 Importar desde Excel".');
+            let sub = findSubjectAndSemesterById(subId)?.subject;
+            let isExternal = false;
+            
+            if (!sub) {
+                sub = orgExternalSubjects.find(s => s.id === subId);
+                isExternal = true;
+            }
+            if (!sub) return;
+
+            const box = document.querySelector(`.org-option-box[data-subject-id="${subId}"]`);
+            if (!box) return;
+            const groupsCont = box.querySelector('.org-sub-groups');
+
+            // Calculamos automáticamente el nombre del grupo (Ej: Grupo 1, Grupo 2)
+            const existingGroups = new Set((sub.schedule || []).map(s => s.groupName || 'Grupo 1'));
+            let autoGroupNum = existingGroups.size === 0 ? 1 : existingGroups.size + 1;
+            const defaultGroupName = `Grupo ${autoGroupNum}`;
+            
+            const subColor = sub.color || '#3b82f6';
+
+            // Evitamos que abran múltiples formularios de la misma materia a la vez
+            const existingForm = box.querySelector('.inline-add-form');
+            if(existingForm) existingForm.remove();
+
+            const div = document.createElement('div');
+            // Le damos al formulario un tinte transparente con el color de la materia
+            div.className = 'inline-add-form p-2 rounded border flex flex-wrap gap-2 items-center mt-2 shadow-sm transition-all';
+            div.style.backgroundColor = subColor + '15'; 
+            div.style.borderColor = subColor;
+
+            div.innerHTML = `
+                <div class="flex flex-wrap gap-2 w-full items-center">
+                    <input type="text" class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 dark:bg-gray-700 dark:text-white dark:border-gray-600" value="${defaultGroupName}" title="Nombre del Grupo (Editable)">
+                    
+                    <select class="new-day shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option>
+                    </select>
+                    
+                    <input type="time" class="new-start shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    <span class="text-xs font-bold">a</span>
+                    <input type="time" class="new-end shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                    
+                    <select class="new-type shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="Teórico">Teórico</option><option value="Práctico">Práctico</option><option value="Laboratorio">Laboratorio</option>
+                    </select>
+
+                    <select class="new-mod shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                        <option value="Presencial">🏫 Presencial</option><option value="Virtual">💻 Virtual</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 w-full justify-end mt-1">
+                    <button type="button" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold save-grp-btn transition shadow">Guardar</button>
+                    <button type="button" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold cancel-grp-btn transition shadow">Cancelar</button>
+                </div>
+            `;
+            
+            groupsCont.appendChild(div);
+
+            div.querySelector('.save-grp-btn').onclick = () => {
+                const gName = div.querySelector('.new-grp-name').value.trim() || 'Grupo 1';
+                const day = div.querySelector('.new-day').value;
+                const start = div.querySelector('.new-start').value;
+                const end = div.querySelector('.new-end').value;
+                const type = div.querySelector('.new-type').value;
+                const mod = div.querySelector('.new-mod').value;
+                
+                if(!start || !end) {
+                    showCustomAlert('Error', 'Debes ingresar la hora de inicio y fin.');
+                    return;
+                }
+                if (start >= end) {
+                    showCustomAlert('Error', 'La hora de fin debe ser mayor a la de inicio.');
+                    return;
+                }
+
+                if(!sub.schedule) sub.schedule = [];
+                // Se agrega el grupo con todos los parámetros correctos
+                sub.schedule.push({
+                    groupName: gName,
+                    day: day,
+                    start: start,
+                    end: end,
+                    modality: mod,
+                    slotType: type,
+                    aula: '',
+                    attendanceType: 'Controlada'
+                });
+
+                if(!isExternal) saveSubjectsData();
+                loadOrganizerSubjects(); // Recarga la vista automáticamente
+            };
+
+            div.querySelector('.cancel-grp-btn').onclick = () => div.remove();
         }
 
         function triggerExcelImport() {
