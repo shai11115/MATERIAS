@@ -3005,8 +3005,14 @@
             
             if (evts.length > 0) {
                 const nextEvent = evts[0];
-                const d = new Date(nextEvent.eventDate+'T12:00:00');
-                const diffDays = Math.ceil((d - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                
+                // Fijamos ambas fechas a las 00:00:00 para hacer una resta exacta
+                const d = new Date(nextEvent.eventDate + 'T12:00:00');
+                d.setHours(0, 0, 0, 0);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const diffDays = Math.round((d - today) / (1000 * 60 * 60 * 24));
                 
                 let timeStr = diffDays === 0 ? '¡Hoy!' : diffDays === 1 ? 'Mañana' : `en ${diffDays} días`;
                 
@@ -3018,8 +3024,13 @@
                     const list = document.getElementById('upcomingEventsList');
                     list.innerHTML = '';
                     evts.forEach(e => {
-                        const ed = new Date(e.eventDate+'T12:00:00');
-                        const dd = Math.ceil((ed - new Date().setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+                        // Hacemos el mismo ajuste de horas para la lista interior
+                        const ed = new Date(e.eventDate + 'T12:00:00');
+                        ed.setHours(0, 0, 0, 0);
+                        const todayDate = new Date();
+                        todayDate.setHours(0, 0, 0, 0);
+                        
+                        const dd = Math.round((ed - todayDate) / (1000 * 60 * 60 * 24));
                         const dStr = dd === 0 ? 'Hoy' : dd === 1 ? 'Mañana' : `en ${dd} días`;
                         
                         const div = document.createElement('div');
