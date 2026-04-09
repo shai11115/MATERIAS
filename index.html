@@ -2863,26 +2863,14 @@
             const n = document.getElementById('editSubjectName').value.trim(), cr = parseInt(document.getElementById('editSubjectCredits').value);
             const ty = document.getElementById('editSubjectType').value;
             const subType = document.getElementById('editSubjectSubtype').value.trim(); 
-            <div class="w-full md:w-1/3 px-2">
-                        <label class="block text-sm font-bold mb-2">Subtema (Opcional):</label>
-                        <input type="text" id="editSubjectSubtype" placeholder="Ej: Ciclo Inicial" class="shadow appearance-none border rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline">
-                    </div>
-                </div>
+            
+            // VARIABLES CORREGIDAS (Aquí estaba el bloque de HTML erróneo)
+            const sc = document.getElementById('editScheduleCode').value;
+            const as = document.getElementById('editAssignedCode').value;
+            const attReq = document.getElementById('editSubjectAttendanceRequired').value;
+            const passPct = document.getElementById('editSubjectPassPct').value;
+            const regPct = document.getElementById('editSubjectRegPct').value;
 
-                <div class="mb-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h3 class="font-bold text-sm mb-2 text-blue-800 dark:text-blue-300">📊 Criterios de Aprobación (Puntos/Porcentaje)</h3>
-                    <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">Define los puntajes mínimos para esta materia. La calculadora los usará automáticamente.</p>
-                    <div class="flex flex-wrap gap-4">
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold mb-1">Mínimo para Exonerar/Aprobar:</label>
-                            <input type="number" id="editSubjectPassPct" class="shadow appearance-none border rounded w-full py-1 px-2 focus:outline-none" placeholder="Ej: 75">
-                        </div>
-                        <div class="flex-1">
-                            <label class="block text-xs font-bold mb-1">Mínimo para Reglamentado:</label>
-                            <input type="number" id="editSubjectRegPct" class="shadow appearance-none border rounded w-full py-1 px-2 focus:outline-none" placeholder="Ej: 50">
-                        </div>
-                    </div>
-                </div>
             const subColor = document.getElementById('editSubjectColor').value || PREDEFINED_COLORS[0];
             
             const selPrevias = Array.from(document.querySelectorAll('#previasCheckboxContainer .previa-check:checked')).map(cb => cb.value);
