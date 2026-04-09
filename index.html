@@ -1149,6 +1149,28 @@
             `;
 
             div.querySelector('.remove-exam-btn').onclick = () => div.remove();
+            
+            div.addEventListener('change', (e) => {
+                if (e.target.classList.contains('eval-grade-val')) {
+                    const gType = div.querySelector('.eval-grade-type').value;
+                    const statusSel = div.querySelector('.exam-status-sel');
+                    let val = e.target.value;
+                    
+                    if (gType === 'Numerica' && val !== '') {
+                        val = parseInt(val);
+                        // Escala Exámenes: Aceptable es >= 3
+                        if (val >= 3) statusSel.value = 'Aprobado';
+                        else statusSel.value = 'Reprobado';
+                        statusSel.dispatchEvent(new Event('change'));
+                    } else if (gType === 'Conceptual' && val !== '') {
+                        const cMap = {'Muy insuficiente (MI)':1, 'Insuficiente (I)':2, 'Aceptable (A)':3, 'Bueno (B)':4, 'Muy bueno (MB)':5, 'Excelente (E)':6};
+                        if (cMap[val] >= 3) statusSel.value = 'Aprobado';
+                        else statusSel.value = 'Reprobado';
+                        statusSel.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+
             div.querySelector('.exam-status-sel').onchange = (e) => {
                 const val = e.target.value;
                 e.target.className = `exam-status-sel shadow border rounded py-1 px-2 text-sm font-bold focus:outline-none ${val==='Aprobado'?'bg-green-100 text-green-800':val==='Reprobado'?'bg-red-100 text-red-800':'bg-yellow-100 text-yellow-800'}`;
