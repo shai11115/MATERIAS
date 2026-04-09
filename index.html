@@ -2891,12 +2891,12 @@
                 Object.assign(sub, {
                     name:n, credits:cr, type:ty, subtype:subType, deliveryType: autoDeliveryType, 
                     attendanceRequired:attReq, scheduleCode:sc, assignedCode:as, schedule:sched, 
-                    previas:selPrevias, color: subColor
+                    previas:selPrevias, color: subColor, passPct: passPct, regPct: regPct
                 });
             } else {
                 tSem.subjects.push({
                     id:generateUniqueId(), name:n, credits:cr, type:ty, subtype:subType, deliveryType: autoDeliveryType, 
-                    attendanceRequired:attReq, scheduleCode:sc, assignedCode:as, schedule:sched, previas:selPrevias, color: subColor,
+                    attendanceRequired:attReq, scheduleCode:sc, assignedCode:as, schedule:sched, previas:selPrevias, color: subColor, passPct: passPct, regPct: regPct,
                     resources:{notes:[],links:[]}, professors: [], evaluations: [], exams: [], overallStatus: 'Cursando'
                 });
             }
