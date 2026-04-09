@@ -3301,7 +3301,7 @@
             }
         };
 
-        function addOrgSlotGroup(subId) {
+        function addOrgSlotGroup(subId, forceGroupName = null) {
             let sub = findSubjectAndSemesterById(subId)?.subject;
             let isExternal = false;
             
@@ -3315,26 +3315,26 @@
             if (!box) return;
             const groupsCont = box.querySelector('.org-sub-groups');
 
-            // Calculamos automáticamente el nombre del grupo (Ej: Grupo 1, Grupo 2)
-            const existingGroups = new Set((sub.schedule || []).map(s => s.groupName || 'Grupo 1'));
+            const existingGroups = new Set((sub.schedule || []).map(s => s.groupName || 'Opción 1'));
             let autoGroupNum = existingGroups.size === 0 ? 1 : existingGroups.size + 1;
-            const defaultGroupName = `Grupo ${autoGroupNum}`;
+            
+            // Si viene un nombre forzado (porque apretó "+ Añadir día"), lo usamos. Sino autogeneramos.
+            const defaultGroupName = forceGroupName ? forceGroupName : `Opción ${autoGroupNum}`;
+            const isReadonly = forceGroupName ? 'readonly class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 bg-gray-200 dark:bg-gray-600 dark:text-white dark:border-gray-500 outline-none"' : 'class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 dark:bg-gray-700 dark:text-white dark:border-gray-600"';
             
             const subColor = sub.color || '#3b82f6';
 
-            // Evitamos que abran múltiples formularios de la misma materia a la vez
             const existingForm = box.querySelector('.inline-add-form');
             if(existingForm) existingForm.remove();
 
             const div = document.createElement('div');
-            // Le damos al formulario un tinte transparente con el color de la materia
             div.className = 'inline-add-form p-2 rounded border flex flex-wrap gap-2 items-center mt-2 shadow-sm transition-all';
             div.style.backgroundColor = subColor + '15'; 
             div.style.borderColor = subColor;
 
             div.innerHTML = `
                 <div class="flex flex-wrap gap-2 w-full items-center">
-                    <input type="text" class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 dark:bg-gray-700 dark:text-white dark:border-gray-600" value="${defaultGroupName}" title="Nombre del Grupo (Editable)">
+                    <input type="text" ${isReadonly} value="${defaultGroupName}" title="Nombre de la Opción">
                     
                     <select class="new-day shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
                         <option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option>
@@ -3353,7 +3353,7 @@
                     </select>
                     
                     <select class="new-att shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Controlada">Ctrl (Controlada)</option><option value="Libre">Libre</option>
+                        <option value="Controlada">Ctrl</option><option value="Libre">Libre</option>
                     </select>
                 </div>
                 <div class="flex gap-2 w-full justify-end mt-1">
@@ -3365,7 +3365,7 @@
             groupsCont.appendChild(div);
 
             div.querySelector('.save-grp-btn').onclick = () => {
-                const gName = div.querySelector('.new-grp-name').value.trim() || 'Grupo 1';
+                const gName = div.querySelector('.new-grp-name').value.trim() || 'Opción 1';
                 const day = div.querySelector('.new-day').value;
                 const start = div.querySelector('.new-start').value;
                 const end = div.querySelector('.new-end').value;
@@ -3383,7 +3383,6 @@
                 }
 
                 if(!sub.schedule) sub.schedule = [];
-                // Se agrega el grupo con todos los parámetros correctos
                 sub.schedule.push({
                     groupName: gName,
                     day: day,
@@ -3396,11 +3395,34 @@
                 });
 
                 if(!isExternal) saveSubjectsData();
-                loadOrganizerSubjects(); // Recarga la vista automáticamente
+                loadOrganizerSubjects();
             };
 
             div.querySelector('.cancel-grp-btn').onclick = () => div.remove();
         }
+
+        // Función nueva para permitir editar el nombre del grupo
+        window.editOrgGroup = function(subId, oldGroupName) {
+            const newName = prompt('Ingrese el nuevo nombre para esta Opción de Horario:', oldGroupName);
+            if (newName && newName.trim() !== '' && newName !== oldGroupName) {
+                let sub = findSubjectAndSemesterById(subId)?.subject;
+                let isExternal = false;
+                if (!sub) {
+                    sub = orgExternalSubjects.find(s => s.id === subId);
+                    isExternal = true;
+                }
+                if (!sub || !sub.schedule) return;
+
+                sub.schedule.forEach(slot => {
+                    if (slot.groupName === oldGroupName) {
+                        slot.groupName = newName.trim();
+                    }
+                });
+
+                if (!isExternal) saveSubjectsData();
+                loadOrganizerSubjects();
+            }
+        };
 
         function triggerExcelImport() {
             document.getElementById('excelImportModal').classList.remove('hidden');
