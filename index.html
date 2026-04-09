@@ -3132,19 +3132,27 @@
         let orgPersonalBlocks = [];
 
         function initOrganizer() {
-            const sel = document.getElementById('orgSemesterSelect'); sel.innerHTML = '';
-            const extSel = document.getElementById('orgExternalSubjectSelect'); extSel.innerHTML = '<option value="">(Seleccionar materia del plan)</option>';
+            const sel = document.getElementById('orgSemesterSelect'); 
+            const previousValue = sel.value; // Guardar estado para no perderlo al navegar
+            sel.innerHTML = '<option value="">(Selecciona un Semestre...)</option>'; // Semestre vacío por defecto
+            
+            const extSel = document.getElementById('orgExternalSubjectSelect'); 
+            extSel.innerHTML = '<option value="">(Seleccionar materia del plan)</option>';
             
             // 1. Llenar el selector de Semestre Base
             subjectsData.forEach(semData => {
                 const opt = document.createElement('option');
                 opt.value = `${semData.year}|${semData.semester}`;
-                // Muestra el año y el nombre (personalizado o no) del semestre
                 opt.textContent = `${semData.year} - Semestre ${semData.semester}`;
                 sel.appendChild(opt);
             });
 
-            // ESCUCHAR CAMBIO: Esto hace que aparezcan las materias al elegir el semestre
+            if (previousValue) {
+                sel.value = previousValue; // Restaurar si había uno seleccionado previamente en la sesión
+            }
+
+            // Limpiar listeners viejos para evitar duplicados y agregar el nuevo
+            sel.removeEventListener('change', loadOrganizerSubjects);
             sel.addEventListener('change', loadOrganizerSubjects);
 
             // 2. Llenar el selector de Inclusión Flexible (Materias)
@@ -3164,6 +3172,7 @@
             
             if (typeof renderPersonalBlocksOrg === "function") renderPersonalBlocksOrg();
         }
+
         function showOrganizer() {
             currentActiveView = 'Organizador';
             document.getElementById('calendarWrapper').classList.add('hidden');
@@ -3177,8 +3186,10 @@
             document.getElementById('scheduleOrganizerButton').classList.add('active');
             
             initOrganizer();
-            if(document.getElementById('orgSemesterSelect').options.length > 0) {
+            if(document.getElementById('orgSemesterSelect').value !== "") {
                 loadOrganizerSubjects();
+            } else {
+                document.getElementById('orgSubjectsContainer').innerHTML = '<p class="text-sm text-gray-500">Selecciona un semestre en el menú de arriba para empezar a organizar.</p>';
             }
         }
 
