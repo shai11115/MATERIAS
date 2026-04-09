@@ -2937,12 +2937,12 @@
                 evalType: div.querySelector('.eval-type-input').value.trim(),
                 gradeType: div.querySelector('.eval-grade-type').value,
                 gradeValue: div.querySelector('.eval-grade-val').value,
+                puntos: div.querySelector('.eval-puntos').value, // <--- ESTA ES LA LÍNEA NUEVA
                 date: div.querySelector('.eval-date').value,
                 time: div.querySelector('.eval-time').value,
                 notes: div.querySelector('.eval-notes').value.trim(),
                 color: div.querySelector('.eval-color-val').value
             }));
-
             sub.exams = Array.from(document.querySelectorAll('.exam-item')).map(div => ({
                 id: div.dataset.examId,
                 status: div.querySelector('.exam-status-sel').value,
