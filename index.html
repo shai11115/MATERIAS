@@ -3647,6 +3647,86 @@
             };
             reader.readAsText(file);
         });
+    function calculateApprovalStatus() {
+            const method = document.getElementById('gsCalcMethod').value;
+            const resDiv = document.getElementById('gsCalcResult');
+            const statusSelect = document.getElementById('gsOverallStatus');
+            
+            let finalState = "Cursando";
+            let statusMsg = "";
+
+            if (method === 'puntos') {
+                const evals = document.querySelectorAll('.eval-puntos');
+                let total = 0;
+                evals.forEach(inp => total += (parseFloat(inp.value) || 0));
+
+                if (total < 25) { statusMsg = `Total: ${total} pts. Muy insuficiente (Examen Libre)`; finalState = "A Examen"; }
+                else if (total < 50) { statusMsg = `Total: ${total} pts. Insuficiente (Examen Libre)`; finalState = "A Examen"; }
+                else if (total < 62) { statusMsg = `Total: ${total} pts. Aceptable (Examen Reglamentado)`; finalState = "A Examen"; }
+                else if (total < 75) { statusMsg = `Total: ${total} pts. Bueno (Aprobada)`; finalState = "Aprobada"; }
+                else if (total < 87) { statusMsg = `Total: ${total} pts. Muy Bueno (Aprobada)`; finalState = "Aprobada"; }
+                else { statusMsg = `Total: ${total} pts. Excelente (Aprobada)`; finalState = "Aprobada"; }
+
+            } else if (method === 'parciales') {
+                const evals = Array.from(document.querySelectorAll('.eval-item')).map(div => {
+                    return {
+                        type: div.querySelector('.eval-type-input').value.trim().toLowerCase(),
+                        gradeValue: div.querySelector('.eval-grade-val').value
+                    };
+                });
+                
+                // Filtramos para agarrar solo los que digan "parcial" (o toma los primeros 3)
+                const parciales = evals.filter(e => e.type.includes('parcial'));
+                let p1 = parciales.find(p => p.type.includes('1') || p.type.includes('primer')) || parciales[0];
+                let p2 = parciales.find(p => p.type.includes('2') || p.type.includes('segundo')) || parciales[1];
+                let p3 = parciales.find(p => p.type.includes('3') || p.type.includes('tercer')) || parciales[2];
+
+                const cMap = {'Muy insuficiente (MI)':1, 'Insuficiente (I)':2, 'Aceptable (A)':3, 'Bueno (B)':4, 'Muy bueno (MB)':5, 'Excelente (E)':6};
+                
+                let val1 = p1 ? cMap[p1.gradeValue] || 0 : 0;
+                let val2 = p2 ? cMap[p2.gradeValue] || 0 : 0;
+                let val3 = p3 ? cMap[p3.gradeValue] || 0 : 0;
+                
+                let countTaken = (val1>0?1:0) + (val2>0?1:0) + (val3>0?1:0);
+                let insCount = (val1===2?1:0) + (val2===2?1:0) + (val3===2?1:0);
+                let miCount = (val1===1?1:0) + (val2===1?1:0) + (val3===1?1:0);
+
+                if (countTaken === 0) {
+                    statusMsg = "No se encontraron parciales para evaluar.";
+                } else if (countTaken === 1 && val1 > 0) { 
+                     statusMsg = "Muy insuficiente (Dio solo 1 parcial) -> Examen Libre"; finalState = "A Examen";
+                } else if (miCount >= 2) {
+                     statusMsg = "Muy insuficiente (2 o más parciales MI) -> Examen Libre"; finalState = "A Examen";
+                } else if (insCount >= 1 && miCount >= 1) {
+                     statusMsg = "Muy insuficiente (1 Insuficiente y 1 MI) -> Examen Libre"; finalState = "A Examen";
+                } else if (insCount >= 2) {
+                     statusMsg = "Insuficiente (2 o más parciales Insuficientes) -> Examen Libre"; finalState = "A Examen";
+                } else {
+                     let b1 = val1 >= 4, b3 = val3 >= 4; // Al menos Bueno en 1 y 3
+                     if (val2 === 6 && b1 && b3) {
+                         statusMsg = "Excelente -> Curso Aprobado"; finalState = "Aprobada";
+                     } else if (val2 === 5 && b1 && b3) {
+                         statusMsg = "Muy bueno -> Curso Aprobado"; finalState = "Aprobada";
+                     } else if (val2 === 4 && b1 && b3) {
+                         statusMsg = "Bueno -> Curso Aprobado"; finalState = "Aprobada";
+                     } else if (val2 === 5 && ((val1 === 3 && val3 >= 4) || (val3 === 3 && val1 >= 4))) {
+                         statusMsg = "Bueno (MB en el 2do, Aceptable en uno y Bueno en otro) -> Aprobada"; finalState = "Aprobada";
+                     } else {
+                         let acCount = (val1>=3?1:0) + (val2>=3?1:0) + (val3>=3?1:0);
+                         if (acCount >= 2) {
+                             statusMsg = "Aceptable / Sin concepto -> Examen Reglamentado"; finalState = "A Examen";
+                         } else {
+                             statusMsg = "Aún en curso o no cumple requisitos de aprobación clara.";
+                         }
+                     }
+                }
+            }
+
+            resDiv.textContent = `Resultado: ${statusMsg}`;
+            resDiv.classList.remove('hidden');
+            statusSelect.value = finalState;
+            statusSelect.dispatchEvent(new Event('change')); // Actualiza la UI de "A Examen"
+        }
 
     </script>
 </body>
