@@ -3710,6 +3710,10 @@
         const resDiv = document.getElementById('gsCalcResult');
         const statusSelect = document.getElementById('gsOverallStatus');
         
+        // Buscamos la materia actual para saber qué porcentajes le configuraste
+        const subId = document.getElementById('gradeStatusSubjectId').value;
+        const sub = getSubjectById(subId);
+        
         let finalState = "Cursando";
         let statusMsg = "";
 
@@ -3718,15 +3722,23 @@
             let total = 0;
             evals.forEach(inp => total += (parseFloat(inp.value) || 0));
 
-            if (total < 25) { statusMsg = `Total: ${total} pts. Muy insuficiente (Examen Libre)`; finalState = "A Examen"; }
-            else if (total < 50) { statusMsg = `Total: ${total} pts. Insuficiente (Examen Libre)`; finalState = "A Examen"; }
-            else if (total < 62) { statusMsg = `Total: ${total} pts. Aceptable (Examen Reglamentado)`; finalState = "A Examen"; }
-            else if (total < 75) { statusMsg = `Total: ${total} pts. Bueno (Aprobada)`; finalState = "Aprobada"; }
-            else if (total < 87) { statusMsg = `Total: ${total} pts. Muy Bueno (Aprobada)`; finalState = "Aprobada"; }
-            else { statusMsg = `Total: ${total} pts. Excelente (Aprobada)`; finalState = "Aprobada"; }
+            // Tomamos los porcentajes que configuraste en la materia, o los valores por defecto
+            const pPass = sub.passPct !== undefined ? sub.passPct : 75;
+            const pReg = sub.regPct !== undefined ? sub.regPct : 50;
+
+            if (total >= pPass) {
+                statusMsg = `Total: ${total} pts o %. ¡Aprobación Directa / Exonerado! (Meta: ${pPass})`; 
+                finalState = "Aprobada";
+            } else if (total >= pReg) {
+                statusMsg = `Total: ${total} pts o %. Examen Reglamentado (Meta: ${pReg})`; 
+                finalState = "A Examen";
+            } else {
+                statusMsg = `Total: ${total} pts o %. Examen Libre (Menor a ${pReg})`; 
+                finalState = "A Examen";
+            }
 
         } else if (method === 'parciales') {
-            // Filtramos TODAS las evaluaciones, pero nos quedamos solo con las que usan notas Conceptuales
+            // Lógica Conceptual
             const conceptualEvals = Array.from(document.querySelectorAll('.eval-item')).map(div => {
                 return {
                     gradeType: div.querySelector('.eval-grade-type').value,
@@ -3739,7 +3751,6 @@
             let countTaken = conceptualEvals.length;
             let vals = conceptualEvals.map(e => cMap[e.gradeValue] || 0);
 
-            // Tomamos las primeras 3 evaluaciones conceptuales por orden de aparición
             let val1 = vals.length > 0 ? vals[0] : 0;
             let val2 = vals.length > 1 ? vals[1] : 0;
             let val3 = vals.length > 2 ? vals[2] : 0;
@@ -3750,9 +3761,7 @@
 
             if (countTaken === 0) {
                 statusMsg = "No se encontraron evaluaciones conceptuales para calcular.";
-            } 
-            // === NIVELES DE REPROBACIÓN ===
-            else if (countTaken === 1) { 
+            } else if (countTaken === 1) { 
                  statusMsg = "Muy insuficiente (Dio solo 1 evaluación) -> Examen Libre"; finalState = "A Examen";
             } else if (miCount >= 2) {
                  statusMsg = "Muy insuficiente (2 o más evaluaciones MI) -> Examen Libre"; finalState = "A Examen";
@@ -3760,11 +3769,9 @@
                  statusMsg = "Muy insuficiente (1 Insuficiente y 1 MI) -> Examen Libre"; finalState = "A Examen";
             } else if (insCount >= 2) {
                  statusMsg = "Insuficiente (2 o más evaluaciones Insuficientes) -> Examen Libre"; finalState = "A Examen";
-            } 
-            // === NIVELES DE APROBACIÓN (Requieren 3 evaluaciones para definir) ===
-            else if (countTaken >= 3) {
-                 let b1 = val1 >= 4; // Al menos Bueno en la 1ra
-                 let b3 = val3 >= 4; // Al menos Bueno en la 3ra
+            } else if (countTaken >= 3) {
+                 let b1 = val1 >= 4; 
+                 let b3 = val3 >= 4; 
                  
                  if (val2 === 6 && b1 && b3) {
                      statusMsg = "Excelente -> Curso Aprobado"; finalState = "Aprobada";
@@ -3779,19 +3786,44 @@
                  } else {
                      statusMsg = "Aún en curso o no cumple requisitos de aprobación clara.";
                  }
-            } 
-            // === NIVEL DE REGLAMENTACIÓN (Si tiene 2 evaluaciones y ambas son >= Aceptable) ===
-            else if (acCount >= 2) {
+            } else if (acCount >= 2) {
                  statusMsg = "Aceptable / Sin concepto (Al menos 2 Aceptables) -> Examen Reglamentado"; finalState = "A Examen";
             } else {
                  statusMsg = "Aún en curso o faltan evaluaciones para definir la aprobación directa.";
+            }
+
+        } else if (method === 'numerica') {
+            // LÓGICA DE CURSOS NUMÉRICA BASADA EN IMAGEN 1
+            const numericalEvals = Array.from(document.querySelectorAll('.eval-item')).map(div => {
+                return {
+                    gradeType: div.querySelector('.eval-grade-type').value,
+                    gradeValue: parseInt(div.querySelector('.eval-grade-val').value)
+                };
+            }).filter(e => e.gradeType === 'Numerica' && !isNaN(e.gradeValue));
+
+            if (numericalEvals.length === 0) {
+                statusMsg = "No hay notas numéricas registradas para promediar.";
+            } else {
+                let sum = numericalEvals.reduce((acc, curr) => acc + curr.gradeValue, 0);
+                let avg = sum / numericalEvals.length;
+                
+                if (avg >= 7) {
+                    statusMsg = `Promedio: ${avg.toFixed(1)} (Bueno o superior). ¡Aprobación Directa!`; 
+                    finalState = "Aprobada";
+                } else if (avg >= 3) {
+                    statusMsg = `Promedio: ${avg.toFixed(1)} (Sin Concepto/Aceptable). Examen Reglamentado.`; 
+                    finalState = "A Examen";
+                } else {
+                    statusMsg = `Promedio: ${avg.toFixed(1)} (Insuficiente o menor). Examen Libre.`; 
+                    finalState = "A Examen";
+                }
             }
         }
 
         resDiv.textContent = `Resultado: ${statusMsg}`;
         resDiv.classList.remove('hidden');
         statusSelect.value = finalState;
-        statusSelect.dispatchEvent(new Event('change')); // Actualiza la UI del select general
+        statusSelect.dispatchEvent(new Event('change'));
     }
 
     </script>
