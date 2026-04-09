@@ -2502,6 +2502,8 @@
             document.getElementById('quickAula').value = '';
             
             document.getElementById('editSubjectAttendanceRequired').value = sub.attendanceRequired !== undefined ? sub.attendanceRequired : (careerSettings.attendanceRequired || 75);
+            document.getElementById('editSubjectPassPct').value = sub.passPct !== undefined ? sub.passPct : 75;
+            document.getElementById('editSubjectRegPct').value = sub.regPct !== undefined ? sub.regPct : 50;
             
             const subCol = sub.color || PREDEFINED_COLORS[0];
             document.getElementById('editSubjectColor').value = subCol;
