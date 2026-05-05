@@ -14,7 +14,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         :root {
             --bg-color: #f7fafc;
@@ -205,16 +204,6 @@
         .dark-mode .day-toggle.selected { background-color: #3182ce; color: white; }
         
         #previasCheckboxContainer { border: 1px solid var(--border-color); border-radius: 0.375rem; padding: 0.5rem; background-color: var(--card-bg); height: 8rem; overflow-y: auto;}
-
-        /* ESTILOS DEL ORGANIZADOR */
-        .org-option-box { border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 0.5rem; background-color: var(--card-bg); transition: background-color 0.2s ease; }
-        .dark-mode .org-option-box { background-color: var(--secondary-bg); }
-        .org-mini-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center; }
-        .org-mini-table th, .org-mini-table td { border: 1px solid var(--border-color); padding: 0.25rem; }
-        .org-mini-table th { background-color: var(--table-header-bg); }
-        .org-slot-indicator { display: inline-block; padding: 0.1rem 0.3rem; border-radius: 0.25rem; margin: 0.1rem; color: white; font-weight: bold; }
-        .org-proposal-card { border: 2px solid var(--border-color); border-radius: 0.75rem; padding: 1rem; background-color: var(--card-bg); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
-        .dark-mode .org-proposal-card { background-color: var(--secondary-bg); }
         
         /* Nuevos estilos Panel Asistencia */
         .att-badge { font-size: 0.60em; padding: 2px 4px; border-radius: 4px; cursor: pointer; margin-bottom: 2px; text-align: center; font-weight: bold; line-height: 1.1; word-wrap: break-word; white-space: normal; transition: all 0.2s;}
@@ -240,14 +229,6 @@
         }
 
         #custom-colors-style { }
-
-/* ESTILOS DEL MINI CALENDARIO (ORGANIZADOR) */
-        .mini-sched-container { display: flex; width: 100%; height: 180px; border: 1px solid var(--border-color); border-radius: 0.5rem; overflow: hidden; background: var(--card-bg); }
-        .mini-sched-col { flex: 1; border-right: 1px solid var(--border-color); position: relative; }
-        .mini-sched-col:last-child { border-right: none; }
-        .mini-sched-header { text-align: center; font-size: 10px; font-weight: bold; background: var(--secondary-bg); padding: 4px 0; border-bottom: 1px solid var(--border-color); }
-        .mini-sched-block { position: absolute; width: 94%; left: 3%; border-radius: 4px; font-size: 9px; line-height: 1.1; padding: 2px; color: white; overflow: hidden; font-weight: bold; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 1px 2px rgba(0,0,0,0.2); border-left: 2px solid rgba(255,255,255,0.5); }
-        
     </style>
 </head>
 <body class="dark-mode dark">
@@ -313,7 +294,6 @@
             <div class="flex justify-center gap-4 mt-8 flex-wrap">
                 <button id="calendarMainButton" class="calendar-main-button">Calendario Lectivo</button>
                 <button id="academicPathButton" class="calendar-main-button">Camino Académico</button>
-                <button id="scheduleOrganizerButton" class="calendar-main-button">Organizador de Horarios</button>
             </div>
 
             <div id="notificationBanner" class="notification-banner mx-auto hidden">
@@ -346,111 +326,6 @@
             <div id="pathConnectors"></div>
         </div>
 
-        <div id="scheduleOrganizerWrapper" class="semester-section mb-8 hidden mx-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">Organizador Inteligente de Horarios</h2>
-                <button id="btnImportExcel" onclick="triggerExcelImport()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow transition text-sm flex items-center gap-2">
-                    📥 Importar desde Excel
-                </button>
-                <input type="file" id="orgExcelInput" accept=".xlsx, .xls" class="hidden">
-            </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800 dark:border-gray-700 shadow-sm">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold mb-2">Semestre Base a Planificar:</label>
-                        <select id="orgSemesterSelect" class="shadow border rounded w-full py-2 px-3 focus:outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold mb-2">Límite de Materias a Cursar (En este semestre):</label>
-                        <input type="number" id="orgMaxSubjects" value="5" min="1" class="shadow appearance-none border rounded w-full py-2 px-3 focus:outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    </div>
-                    
-                    <div class="pt-2">
-                        <label class="block text-sm font-bold mb-2">Turnos Permitidos (Unión):</label>
-                        <div class="flex gap-4 mb-2 flex-wrap text-sm">
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="orgShiftMorning" checked class="w-4 h-4 accent-blue-500"> Mañana</label>
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="orgShiftAfternoon" checked class="w-4 h-4 accent-blue-500"> Tarde</label>
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="orgShiftNight" checked class="w-4 h-4 accent-blue-500"> Noche</label>
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">El sistema buscará combinaciones limitadas estrictamente a los turnos marcados. Además, intentará agrupar tus materias 🏫 presenciales el mismo día.</p>
-                        
-                        <label class="flex items-center gap-1 cursor-pointer font-bold mt-2 text-sm">
-                            <input type="checkbox" id="orgBalanceHours" class="w-4 h-4 accent-blue-500"> Priorizar Equilibrio de Horas Diarias (Evita sobrecarga en pocos días)
-                        </label>
-                    </div>
-                    
-                    <div class="border-t pt-3 dark:border-gray-600">
-                        <label class="block text-sm font-bold mb-2 text-gray-700 dark:text-gray-300">Definición Interna de Turnos:</label>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-2">
-                            <div><span class="text-xs block mb-1">Mañana</span><div class="flex gap-1 flex-col"><input type="time" id="orgMorningStart" value="08:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"><input type="time" id="orgMorningEnd" value="13:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"></div></div>
-                            <div><span class="text-xs block mb-1">Tarde</span><div class="flex gap-1 flex-col"><input type="time" id="orgAfternoonStart" value="13:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"><input type="time" id="orgAfternoonEnd" value="18:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"></div></div>
-                            <div><span class="text-xs block mb-1">Noche</span><div class="flex gap-1 flex-col"><input type="time" id="orgNightStart" value="18:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"><input type="time" id="orgNightEnd" value="23:00" class="text-xs border rounded p-1 w-full dark:bg-gray-700"></div></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="space-y-6">
-                    <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 rounded shadow-sm">
-                        <h3 class="text-sm font-bold mb-2">Restricciones Personales (Horarios Bloqueados)</h3>
-                        <div class="flex gap-2 mb-2 items-center text-xs flex-wrap">
-                            <select id="orgBlockDay" class="shadow border rounded p-1 focus:outline-none dark:bg-gray-600 dark:border-gray-500"><option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option></select>
-                            <input type="time" id="orgBlockStart" class="shadow border rounded p-1 focus:outline-none dark:bg-gray-600 dark:border-gray-500"> a
-                            <input type="time" id="orgBlockEnd" class="shadow border rounded p-1 focus:outline-none dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="orgBlockName" placeholder="Motivo (ej: Trabajo)" class="shadow border rounded p-1 focus:outline-none dark:bg-gray-600 dark:border-gray-500 w-24 flex-grow">
-                            <button type="button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded transition" onclick="addOrgPersonalBlock()">Bloquear</button>
-                        </div>
-                        <div id="orgPersonalBlocksList" class="max-h-24 overflow-y-auto space-y-1 mb-2"></div>
-                        <label class="text-xs flex items-center gap-1 cursor-pointer">
-                            <input type="checkbox" id="orgAllowVirtualInBlocks" class="w-3 h-3 accent-blue-500"> Permitir asignación de materias 💻 Virtuales durante mis bloqueos.
-                        </label>
-                    </div>
-
-                    <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 rounded shadow-sm">
-                        <h3 class="text-sm font-bold mb-2">Inclusión Flexible (Materias Adicionales)</h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Añade materias atrasadas, adelantadas o extras. Sus créditos contarán para el planificador.</p>
-                        <div class="flex gap-2 mb-2 flex-wrap sm:flex-nowrap">
-                            <select id="orgExternalSubjectSelect" class="shadow border rounded p-1 text-xs focus:outline-none flex-grow min-w-0 w-full sm:w-auto dark:bg-gray-600 dark:border-gray-500"></select>
-                            <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded text-xs transition flex-shrink-0" onclick="addExternalSubjectOrg()">Añadir del Plan</button>
-                        </div>
-                        <div class="flex gap-2 flex-wrap sm:flex-nowrap">
-                            <input type="text" id="orgAdHocName" placeholder="Materia nueva/externa" class="shadow border rounded p-1 text-xs focus:outline-none flex-grow min-w-0 w-full sm:w-auto dark:bg-gray-600 dark:border-gray-500">
-                            <input type="number" id="orgAdHocCredits" placeholder="Créditos" class="shadow border rounded p-1 text-xs focus:outline-none w-20 dark:bg-gray-600 dark:border-gray-500" min="0">
-                            <button type="button" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-1 px-2 rounded text-xs transition flex-shrink-0" onclick="addAdHocSubjectOrg()">Añadir</button>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 rounded shadow-sm mt-3">
-                        <label class="flex items-center gap-2 font-bold text-sm cursor-pointer mb-2">
-                            <input type="checkbox" id="orgUseCreditGoal" class="w-4 h-4 accent-blue-500" onchange="document.getElementById('orgCreditSettings').classList.toggle('hidden', !this.checked)">
-                            Optimizar combinación por Objetivo de Créditos
-                        </label>
-                        <div id="orgCreditSettings" class="hidden flex flex-wrap gap-2 text-xs">
-                            <input type="number" id="orgTargetCredits" placeholder="Créditos Meta Total (ej. 360)" class="shadow border rounded py-1 px-2 flex-grow dark:bg-gray-600 dark:border-gray-500">
-                            <input type="number" id="orgRemainingSemesters" placeholder="Semestres Restantes" class="shadow border rounded py-1 px-2 w-32 dark:bg-gray-600 dark:border-gray-500" min="1">
-                        </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Sugerirá optativas necesarias para promediar los créditos faltantes hacia la meta.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <h3 class="text-xl font-bold mb-2 border-b dark:border-gray-700 pb-2">Opciones de Horario por Materia</h3>
-                <p class="text-sm mb-4 text-gray-600 dark:text-gray-400">Define los diferentes grupos, sus días, horarios y si se dictan de forma Presencial (🏫) o Virtual (💻). Marca las materias optativas intercambiables para que el sistema escoja la mejor.</p>
-                <div id="orgSubjectsContainer" class="space-y-4"></div>
-            </div>
-
-            <div class="text-center mt-6 border-t pt-6 dark:border-gray-700">
-                <button id="btnGenerateSchedule" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition transform hover:scale-105">Generar Mejores Propuestas</button>
-            </div>
-
-            <div id="orgResultsContainer" class="mt-8 space-y-6 hidden">
-                <h3 class="text-2xl font-bold mb-2 border-b pb-2 dark:border-gray-700">Mejores Propuestas (Clasificadas)</h3>
-                <div id="orgAlertContainer" class="mb-4 hidden"></div>
-                <div id="orgProposalsList" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-            </div>
-        </div>
-        
         <div class="flex justify-center gap-4 mb-8" id="yearModButtonsWrapper">
             <button id="openAddYearModalBtn" class="font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">Agregar Año</button>
             <button id="openDeleteYearModalBtn" class="font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">Eliminar Año</button>
@@ -534,24 +409,6 @@
             <div class="flex justify-end mt-6">
                 <button id="saveSemesterPeriodBtn" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mr-2">Guardar</button>
                 <button id="cancelSemesterPeriodBtn" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="excelImportModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 modal hidden">
-        <div class="p-8 rounded-xl shadow-lg w-11/12 md:w-1/2 lg:w-1/3 modal-content">
-            <h2 class="text-2xl font-bold mb-4">Importar Horarios (Excel)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Selecciona a qué tipo de materias quieres aplicar los horarios importados del Excel.</p>
-            
-            <div class="space-y-2 mb-6 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                <label class="flex items-center gap-2 cursor-pointer font-semibold"><input type="checkbox" id="excelChkObligatoria" class="w-4 h-4" checked> Materias Obligatorias</label>
-                <label class="flex items-center gap-2 cursor-pointer font-semibold"><input type="checkbox" id="excelChkOpcional" class="w-4 h-4" checked> Materias Opcionales/Optativas</label>
-                <label class="flex items-center gap-2 cursor-pointer font-semibold"><input type="checkbox" id="excelChkElectiva" class="w-4 h-4" checked> Materias Electivas</label>
-            </div>
-
-            <div class="flex justify-end mt-6">
-                <button onclick="processExcelData()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mr-2">Procesar y Aplicar</button>
-                <button onclick="document.getElementById('excelImportModal').classList.add('hidden')" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
             </div>
         </div>
     </div>
@@ -1274,7 +1131,7 @@
             if (uniqueYears.length === 0) {
                 document.getElementById('semesterContentArea').innerHTML = `<p class="text-center mt-10">No hay años académicos para mostrar. Agrega un nuevo año.</p>`;
                 document.getElementById('semesterContentArea').classList.remove('hidden');
-                if (currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico' && currentActiveView !== 'Organizador') currentActiveView = '';
+                if (currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico') currentActiveView = '';
                 return;
             }
             uniqueYears.forEach(year => {
@@ -1288,7 +1145,7 @@
                 container.appendChild(btn);
             });
 
-            if (!currentActiveView || (!uniqueYears.includes(currentActiveView) && currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico' && currentActiveView !== 'Organizador')) {
+            if (!currentActiveView || (!uniqueYears.includes(currentActiveView) && currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico')) {
                 document.getElementById('semesterContentArea').innerHTML = '';
                 document.getElementById('semesterContentArea').classList.add('hidden');
                 currentActiveView = '';
@@ -1301,10 +1158,8 @@
             currentActiveView = yearToShow;
             document.getElementById('calendarWrapper').classList.add('hidden');
             document.getElementById('academicPathWrapper').classList.add('hidden');
-            document.getElementById('scheduleOrganizerWrapper').classList.add('hidden');
             document.getElementById('calendarMainButton').classList.remove('active');
             document.getElementById('academicPathButton').classList.remove('active');
-            document.getElementById('scheduleOrganizerButton').classList.remove('active');
             document.getElementById('yearModButtonsWrapper').classList.remove('hidden');
 
             const contentArea = document.getElementById('semesterContentArea');
@@ -2042,7 +1897,7 @@
             });
             openAttendanceModal(ds, activeSlots); // Refrescar modal
             
-            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico' && currentActiveView !== 'Organizador') showContent(currentActiveView);
+            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico') showContent(currentActiveView);
         }
 
         document.getElementById('closeAttendanceModalBtn').onclick = () => document.getElementById('attendanceModal').classList.add('hidden');
@@ -2322,11 +2177,9 @@
             currentActiveView = 'Camino Académico';
             document.getElementById('calendarWrapper').classList.add('hidden');
             document.getElementById('semesterContentArea').classList.add('hidden');
-            document.getElementById('scheduleOrganizerWrapper').classList.add('hidden');
             document.getElementById('academicPathWrapper').classList.remove('hidden');
             document.getElementById('calendarMainButton').classList.remove('active');
             document.getElementById('academicPathButton').classList.add('active');
-            document.getElementById('scheduleOrganizerButton').classList.remove('active');
             document.getElementById('yearModButtonsWrapper').classList.add('hidden');
             document.querySelectorAll('.year-button').forEach(btn => btn.classList.remove('active'));
             renderAcademicPath();
@@ -2844,7 +2697,7 @@
             });
             saveCareerSettings(); 
             closeSettingsModal(); 
-            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico' && currentActiveView !== 'Organizador') showContent(currentActiveView);
+            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico') showContent(currentActiveView);
         }
 
         function saveSubjectChanges(){
@@ -3115,365 +2968,6 @@
             }
         }
 
-        /* --- LÓGICA DEL ORGANIZADOR DE HORARIOS --- */
-        let orgExternalSubjects = [];
-        let orgPersonalBlocks = [];
-
-        function initOrganizer() {
-            const sel = document.getElementById('orgSemesterSelect'); 
-            const previousValue = sel.value; // Guardar estado para no perderlo al navegar
-            sel.innerHTML = '<option value="">(Selecciona un Semestre...)</option>'; // Semestre vacío por defecto
-            
-            const extSel = document.getElementById('orgExternalSubjectSelect'); 
-            extSel.innerHTML = '<option value="">(Seleccionar materia del plan)</option>';
-            
-            // 1. Llenar el selector de Semestre Base
-            subjectsData.forEach(semData => {
-                const opt = document.createElement('option');
-                opt.value = `${semData.year}|${semData.semester}`;
-                opt.textContent = `${semData.year} - Semestre ${semData.semester}`;
-                sel.appendChild(opt);
-            });
-
-            if (previousValue) {
-                sel.value = previousValue; // Restaurar si había uno seleccionado previamente en la sesión
-            }
-
-            // Limpiar listeners viejos para evitar duplicados y agregar el nuevo
-            sel.removeEventListener('change', loadOrganizerSubjects);
-            sel.addEventListener('change', loadOrganizerSubjects);
-
-            // 2. Llenar el selector de Inclusión Flexible (Materias)
-            subjectsData.forEach(semData => {
-                const optGroup = document.createElement('optgroup');
-                optGroup.label = `${semData.year} - Sem. ${semData.semester}`;
-                semData.subjects.forEach(sub => {
-                    if (!completedSubjects.has(sub.id)) {
-                        const opt = document.createElement('option');
-                        opt.value = sub.id;
-                        opt.textContent = sub.name;
-                        optGroup.appendChild(opt);
-                    }
-                });
-                if (optGroup.children.length > 0) extSel.appendChild(optGroup);
-            });
-            
-            if (typeof renderPersonalBlocksOrg === "function") renderPersonalBlocksOrg();
-        }
-
-        function showOrganizer() {
-            currentActiveView = 'Organizador';
-            document.getElementById('calendarWrapper').classList.add('hidden');
-            document.getElementById('academicPathWrapper').classList.add('hidden');
-            document.getElementById('semesterContentArea').classList.add('hidden');
-            document.getElementById('scheduleOrganizerWrapper').classList.remove('hidden');
-            document.getElementById('yearModButtonsWrapper').classList.add('hidden');
-            document.querySelectorAll('.year-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('calendarMainButton').classList.remove('active');
-            document.getElementById('academicPathButton').classList.remove('active');
-            document.getElementById('scheduleOrganizerButton').classList.add('active');
-            
-            initOrganizer();
-            if(document.getElementById('orgSemesterSelect').value !== "") {
-                loadOrganizerSubjects();
-            } else {
-                document.getElementById('orgSubjectsContainer').innerHTML = '<p class="text-sm text-gray-500">Selecciona un semestre en el menú de arriba para empezar a organizar.</p>';
-            }
-        }
-
-        function loadOrganizerSubjects() {
-            const cont = document.getElementById('orgSubjectsContainer');
-            cont.innerHTML = '';
-            document.getElementById('orgResultsContainer').classList.add('hidden');
-            
-            const selVal = document.getElementById('orgSemesterSelect').value;
-            if(!selVal) return;
-            const [y, s] = selVal.split('|');
-            const semData = subjectsData.find(d => d.year === y && d.semester === s);
-            if(!semData) return;
-
-            const allSubsToPlan = [...semData.subjects];
-            orgExternalSubjects.forEach(ext => {
-                if(!allSubsToPlan.find(sub => sub.id === ext.id)) allSubsToPlan.push(ext);
-            });
-
-            if (allSubsToPlan.length === 0) {
-                cont.innerHTML = '<p class="text-sm text-gray-500">No hay materias para planificar en este semestre.</p>';
-                return;
-            }
-
-            allSubsToPlan.forEach(sub => {
-                const box = document.createElement('div');
-                box.className = 'org-option-box';
-                box.dataset.subjectId = sub.id;
-                box.dataset.subjectType = sub.type || 'Obligatoria';
-                box.dataset.credits = sub.credits || 0;
-                
-                const isOp = (sub.type === 'Opcional' || sub.type === 'Optativa/Opcional' || sub.type === 'Electiva');
-                const subColor = sub.color || '#3b82f6';
-                
-                // Aplicamos el color de la materia al borde izquierdo
-                box.innerHTML = `
-                    <div class="flex justify-between items-center mb-2 flex-wrap gap-2" style="border-left: 4px solid ${subColor}; padding-left: 8px;">
-                        <div class="font-bold flex items-center gap-2">
-                            <input type="checkbox" class="org-sub-include w-4 h-4 accent-blue-500" checked>
-                            ${sub.name} <span class="text-xs font-normal text-gray-500 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded">${sub.type} - ${sub.credits}cr</span>
-                        </div>
-                        <div class="flex gap-2 items-center text-xs">
-                            ${isOp ? `<label class="flex items-center gap-1 cursor-pointer" title="Permitir que el algoritmo escoja si incluye esta optativa o no para optimizar créditos/horarios"><input type="checkbox" class="org-sub-flexible w-3 h-3 accent-purple-500" checked> Flexible (Intercambiable)</label>` : ''}
-                            <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 px-2 py-1 rounded transition text-xs font-bold" onclick="addOrgSlotGroup('${sub.id}')">+ Añadir Opción</button>
-                        </div>
-                    </div>
-                    <div class="org-sub-groups space-y-2 mt-2"></div>
-                `;
-                
-                const groupsCont = box.querySelector('.org-sub-groups');
-                
-                // Agrupamos los horarios usando el nuevo campo "groupName"
-                if (sub.schedule && sub.schedule.length > 0) {
-                    const groupsMap = {};
-                    sub.schedule.forEach((slot, index) => {
-                        const k = slot.groupName || 'Grupo Único';
-                        if(!groupsMap[k]) groupsMap[k] = [];
-                        groupsMap[k].push({ ...slot, originalIndex: index });
-                    });
-                    
-                    for (const grpName in groupsMap) {
-                        const slots = groupsMap[grpName];
-                        const html = createOrgGroupHTML(sub.id, grpName, slots, subColor);
-                        groupsCont.insertAdjacentHTML('beforeend', html);
-                    }
-                } else {
-                    groupsCont.insertAdjacentHTML('beforeend', createOrgGroupHTML(sub.id, 'Sin Horario', [], subColor));
-                }
-
-                cont.appendChild(box);
-            });
-        }
-
-        function createOrgGroupHTML(subId, groupName, slots = [], color = '#3b82f6') {
-            let slotsDesc = '';
-            if (slots.length > 0) {
-                slotsDesc = slots.map(s => {
-                    const icon = s.modality === 'Virtual' ? '💻' : '🏫';
-                    return `<span class="org-slot-indicator flex items-center gap-1 shadow-sm" style="background-color: ${color}">${s.day.substring(0,3)} ${s.start}-${s.end} ${icon} <button type="button" onclick="deleteOrgSlot('${subId}', ${s.originalIndex})" class="text-white hover:text-red-300 font-bold ml-1 leading-none bg-black bg-opacity-20 rounded-full w-4 h-4 flex items-center justify-center transition" title="Eliminar este bloque">&times;</button></span>`;
-                }).join(' ');
-            }
-            
-            return `
-                <div class="bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 flex flex-wrap gap-2 items-center org-group-item">
-                    <span class="text-xs font-bold w-20 truncate" style="color: ${color}" title="${groupName}">${groupName}</span>
-                    <div class="flex-grow flex flex-wrap gap-1 items-center">
-                        ${slotsDesc || '<span class="text-xs text-red-500">Sin horario definido.</span>'}
-                        <button type="button" onclick="addOrgSlotGroup('${subId}', '${groupName}')" class="text-blue-600 dark:text-blue-400 hover:underline text-xs font-bold ml-2 transition" title="Añadir otro día/horario a esta opción">+ Añadir día</button>
-                    </div>
-                    <button type="button" onclick="editOrgGroup('${subId}', '${groupName}')" class="text-gray-500 hover:text-gray-700 text-xs ml-2 border border-gray-300 dark:border-gray-600 px-1 rounded bg-white dark:bg-gray-700" title="Editar Nombre de la Opción">✏️ Renombrar</button>
-                    <label class="flex items-center gap-1 text-xs cursor-pointer ml-2"><input type="checkbox" class="org-grp-active w-3 h-3 accent-blue-500" checked> Activo</label>
-                </div>
-            `;
-        }
-
-        window.deleteOrgSlot = function(subId, slotIndex) {
-            let isExternal = false;
-            let sub = findSubjectAndSemesterById(subId)?.subject;
-            if (!sub) {
-                sub = orgExternalSubjects.find(s => s.id === subId);
-                isExternal = true;
-            }
-            if (!sub) return;
-
-            if(confirm('¿Estás seguro de eliminar este bloque de horario?')) {
-                sub.schedule.splice(slotIndex, 1); // Borramos el horario exacto
-                if(!isExternal) saveSubjectsData();
-                loadOrganizerSubjects(); // Recargamos la vista
-            }
-        };
-
-        function addOrgSlotGroup(subId, forceGroupName = null) {
-            let sub = findSubjectAndSemesterById(subId)?.subject;
-            let isExternal = false;
-            
-            if (!sub) {
-                sub = orgExternalSubjects.find(s => s.id === subId);
-                isExternal = true;
-            }
-            if (!sub) return;
-
-            const box = document.querySelector(`.org-option-box[data-subject-id="${subId}"]`);
-            if (!box) return;
-            const groupsCont = box.querySelector('.org-sub-groups');
-
-            const existingGroups = new Set((sub.schedule || []).map(s => s.groupName || 'Opción 1'));
-            let autoGroupNum = existingGroups.size === 0 ? 1 : existingGroups.size + 1;
-            
-            // Si viene un nombre forzado (porque apretó "+ Añadir día"), lo usamos. Sino autogeneramos.
-            const defaultGroupName = forceGroupName ? forceGroupName : `Opción ${autoGroupNum}`;
-            const isReadonly = forceGroupName ? 'readonly class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 bg-gray-200 dark:bg-gray-600 dark:text-white dark:border-gray-500 outline-none"' : 'class="new-grp-name shadow border rounded py-1 px-2 text-xs font-bold w-24 dark:bg-gray-700 dark:text-white dark:border-gray-600"';
-            
-            const subColor = sub.color || '#3b82f6';
-
-            const existingForm = box.querySelector('.inline-add-form');
-            if(existingForm) existingForm.remove();
-
-            const div = document.createElement('div');
-            div.className = 'inline-add-form p-2 rounded border flex flex-wrap gap-2 items-center mt-2 shadow-sm transition-all';
-            div.style.backgroundColor = subColor + '15'; 
-            div.style.borderColor = subColor;
-
-            div.innerHTML = `
-                <div class="flex flex-wrap gap-2 w-full items-center">
-                    <input type="text" ${isReadonly} value="${defaultGroupName}" title="Nombre de la Opción">
-                    
-                    <select class="new-day shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option>Lunes</option><option>Martes</option><option>Miércoles</option><option>Jueves</option><option>Viernes</option><option>Sábado</option>
-                    </select>
-                    
-                    <input type="time" class="new-start shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <span class="text-xs font-bold">a</span>
-                    <input type="time" class="new-end shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                    
-                    <select class="new-type shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Teórico">Teórico</option><option value="Práctico">Práctico</option><option value="Teórico-Práctico">Teórico-Práctico</option><option value="Laboratorio">Laboratorio</option><option value="Consulta">Consulta</option><option value="Taller">Taller</option><option value="Otro">Otro</option>
-                    </select>
-
-                    <select class="new-mod shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Presencial">🏫 Presencial</option><option value="Virtual">💻 Virtual</option><option value="Híbrida/Semipresencial">🔄 Híbrida</option>
-                    </select>
-                    
-                    <select class="new-att shadow border rounded py-1 px-1 text-xs dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                        <option value="Controlada">Ctrl</option><option value="Libre">Libre</option>
-                    </select>
-                </div>
-                <div class="flex gap-2 w-full justify-end mt-1">
-                    <button type="button" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-xs font-bold save-grp-btn transition shadow">Guardar</button>
-                    <button type="button" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold cancel-grp-btn transition shadow">Cancelar</button>
-                </div>
-            `;
-            
-            groupsCont.appendChild(div);
-
-            div.querySelector('.save-grp-btn').onclick = () => {
-                const gName = div.querySelector('.new-grp-name').value.trim() || 'Opción 1';
-                const day = div.querySelector('.new-day').value;
-                const start = div.querySelector('.new-start').value;
-                const end = div.querySelector('.new-end').value;
-                const type = div.querySelector('.new-type').value;
-                const mod = div.querySelector('.new-mod').value;
-                const att = div.querySelector('.new-att').value;
-                
-                if(!start || !end) {
-                    showCustomAlert('Error', 'Debes ingresar la hora de inicio y fin.');
-                    return;
-                }
-                if (start >= end) {
-                    showCustomAlert('Error', 'La hora de fin debe ser mayor a la de inicio.');
-                    return;
-                }
-
-                if(!sub.schedule) sub.schedule = [];
-                sub.schedule.push({
-                    groupName: gName,
-                    day: day,
-                    start: start,
-                    end: end,
-                    modality: mod,
-                    slotType: type,
-                    aula: '',
-                    attendanceType: att
-                });
-
-                if(!isExternal) saveSubjectsData();
-                loadOrganizerSubjects();
-            };
-
-            div.querySelector('.cancel-grp-btn').onclick = () => div.remove();
-        }
-
-        // Función nueva para permitir editar el nombre del grupo
-        window.editOrgGroup = function(subId, oldGroupName) {
-            const newName = prompt('Ingrese el nuevo nombre para esta Opción de Horario:', oldGroupName);
-            if (newName && newName.trim() !== '' && newName !== oldGroupName) {
-                let sub = findSubjectAndSemesterById(subId)?.subject;
-                let isExternal = false;
-                if (!sub) {
-                    sub = orgExternalSubjects.find(s => s.id === subId);
-                    isExternal = true;
-                }
-                if (!sub || !sub.schedule) return;
-
-                sub.schedule.forEach(slot => {
-                    if (slot.groupName === oldGroupName) {
-                        slot.groupName = newName.trim();
-                    }
-                });
-
-                if (!isExternal) saveSubjectsData();
-                loadOrganizerSubjects();
-            }
-        };
-
-        function triggerExcelImport() {
-            document.getElementById('excelImportModal').classList.remove('hidden');
-        }
-
-        function processExcelData() {
-            const fileInput = document.getElementById('orgExcelInput');
-            if(!fileInput.files.length) {
-                fileInput.click();
-                fileInput.onchange = () => { if(fileInput.files.length) window._pendingExcelFile = fileInput.files[0]; };
-                return;
-            }
-            if(!window._pendingExcelFile) window._pendingExcelFile = fileInput.files[0];
-            
-            const file = window._pendingExcelFile;
-            if(!file) return;
-
-            const incObl = document.getElementById('excelChkObligatoria').checked;
-            const incOpc = document.getElementById('excelChkOpcional').checked;
-            const incEle = document.getElementById('excelChkElectiva').checked;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, {type: 'array'});
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-                
-                let importedCount = 0;
-
-                rows.forEach((row, index) => {
-                    if(index === 0) return; // Header
-                    const subName = String(row[0] || '').trim();
-                    const day = String(row[1] || '').trim();
-                    const start = String(row[2] || '').trim();
-                    const end = String(row[3] || '').trim();
-                    
-                    if(!subName || !day || !start || !end) return;
-
-                    const matchSub = orgExternalSubjects.find(s => s.name.toLowerCase() === subName.toLowerCase());
-                    if (matchSub) {
-                        let process = false;
-                        if(matchSub.type === 'Obligatoria' && incObl) process = true;
-                        if((matchSub.type === 'Opcional' || matchSub.type === 'Optativa/Opcional') && incOpc) process = true;
-                        if(matchSub.type === 'Electiva' && incEle) process = true;
-                        if(matchSub.type === 'Ad-Hoc') process = true; 
-
-                        if(process) {
-                            if(!matchSub.schedule) matchSub.schedule = [];
-                            matchSub.schedule.push({ day, start, end, modality: 'Presencial', slotType: 'Teórico', aula: '', attendanceType: 'Controlada' });
-                            importedCount++;
-                        }
-                    }
-                });
-
-                document.getElementById('excelImportModal').classList.add('hidden');
-                window._pendingExcelFile = null;
-                showCustomAlert('Importación Exitosa', `Se han procesado e importado ${importedCount} horarios desde el archivo Excel.`);
-                loadOrganizerSubjects();
-            };
-            reader.readAsArrayBuffer(file);
-        };
-
         // --- INICIALIZACIÓN GENERAL ---
         function applyDarkMode() {
             if(isDarkMode) {
@@ -3522,14 +3016,12 @@
             currentActiveView = 'Calendario Lectivo';
             document.getElementById('academicPathWrapper').classList.add('hidden');
             document.getElementById('semesterContentArea').classList.add('hidden');
-            document.getElementById('scheduleOrganizerWrapper').classList.add('hidden');
             document.getElementById('yearModButtonsWrapper').classList.add('hidden');
             
             document.getElementById('calendarWrapper').classList.remove('hidden');
             
             document.querySelectorAll('.year-button').forEach(btn => btn.classList.remove('active'));
             document.getElementById('academicPathButton').classList.remove('active');
-            document.getElementById('scheduleOrganizerButton').classList.remove('active');
             document.getElementById('calendarMainButton').classList.add('active');
             
             renderAcademicCalendar();
@@ -3538,7 +3030,6 @@
         document.getElementById('calendarMainButton').onclick = showCalendarView;
 
         document.getElementById('academicPathButton').onclick = showAcademicPath;
-        document.getElementById('scheduleOrganizerButton').onclick = showOrganizer;
 
         document.getElementById('toggleAttendanceModeBtn').onclick = (e) => {
             isAttendanceMode = !isAttendanceMode;
@@ -3638,7 +3129,7 @@
             document.getElementById('colorPalettePanel').classList.remove('visible');
             saveColorSettings();
             applyCustomColors();
-            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico' && currentActiveView !== 'Organizador') showContent(currentActiveView);
+            if(currentActiveView !== 'Calendario Lectivo' && currentActiveView !== 'Camino Académico') showContent(currentActiveView);
             renderYearSelectionButtons(); renderAcademicPath();
         };
 
@@ -3896,478 +3387,7 @@
         statusSelect.value = finalState;
         statusSelect.dispatchEvent(new Event('change'));
     }
-
-    /* =========================================================
-   LÓGICA DEL GENERADOR INTELIGENTE DE HORARIOS
-========================================================= */
-
-document.getElementById('btnGenerateSchedule').onclick = function() {
-    const container = document.getElementById('orgProposalsList');
-    const resultsWrapper = document.getElementById('orgResultsContainer');
-    const alertCont = document.getElementById('orgAlertContainer');
-    
-    container.innerHTML = '';
-    alertCont.classList.add('hidden');
-    resultsWrapper.classList.remove('hidden');
-
-    // 1. Utilidades de tiempo
-    const timeToMins = t => { const [h,m] = t.split(':').map(Number); return (h * 60) + m; };
-    const minsToTime = m => `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
-
-    // 2. Obtener y fusionar los turnos seleccionados
-    let shiftRanges = [];
-    if (document.getElementById('orgShiftMorning').checked) shiftRanges.push([timeToMins(document.getElementById('orgMorningStart').value), timeToMins(document.getElementById('orgMorningEnd').value)]);
-    if (document.getElementById('orgShiftAfternoon').checked) shiftRanges.push([timeToMins(document.getElementById('orgAfternoonStart').value), timeToMins(document.getElementById('orgAfternoonEnd').value)]);
-    if (document.getElementById('orgShiftNight').checked) shiftRanges.push([timeToMins(document.getElementById('orgNightStart').value), timeToMins(document.getElementById('orgNightEnd').value)]);
-
-    if (shiftRanges.length === 0) {
-        showAlert('Error', 'Debes seleccionar al menos un turno (Mañana, Tarde o Noche).');
-        return;
-    }
-
-    // Fusionar turnos superpuestos o continuos (ej: Mañana y Tarde)
-    shiftRanges.sort((a,b) => a[0] - b[0]);
-    let mergedShifts = [];
-    let curr = shiftRanges[0];
-    for(let i = 1; i < shiftRanges.length; i++) {
-        if(shiftRanges[i][0] <= curr[1]) curr[1] = Math.max(curr[1], shiftRanges[i][1]);
-        else { mergedShifts.push(curr); curr = shiftRanges[i]; }
-    }
-    mergedShifts.push(curr);
-
-    const isSlotInShifts = (startMins, endMins) => mergedShifts.some(r => startMins >= r[0] && endMins <= r[1]);
-
-    // 3. Recopilar materias activas y sus grupos de la interfaz
-    const subjectsToPlan = [];
-    document.querySelectorAll('.org-option-box').forEach(box => {
-        if (!box.querySelector('.org-sub-include').checked) return;
-        
-        const subId = box.dataset.subjectId;
-        const isFlexible = box.querySelector('.org-sub-flexible')?.checked || false;
-        const sub = getSubjectById(subId) || orgExternalSubjects.find(s => s.id === subId);
-        if(!sub) return;
-
-        // Recopilar grupos activos de esta materia
-        const groups = [];
-        box.querySelectorAll('.org-group-item').forEach(gItem => {
-            if(!gItem.querySelector('.org-grp-active').checked) return;
-            const gName = gItem.querySelector('.text-xs.font-bold').textContent;
-            
-            // Buscar los horarios de este grupo que calcen en los turnos
-            const groupSlots = sub.schedule.filter(s => (s.groupName || 'Grupo Único') === gName);
-            if(groupSlots.length === 0) return;
-
-            let valid = true;
-            let parsedSlots = [];
-            for(let s of groupSlots) {
-                const start = timeToMins(s.start);
-                const end = timeToMins(s.end);
-                if(!isSlotInShifts(start, end)) valid = false; // El bloque sale de los turnos permitidos
-                parsedSlots.push({...s, startMins: start, endMins: end});
-            }
-
-            if(valid) groups.push({ name: gName, slots: parsedSlots });
-        });
-
-        if(groups.length > 0) {
-            subjectsToPlan.push({ id: sub.id, name: sub.name, color: sub.color || '#3b82f6', isFlexible, groups });
-        }
-    });
-
-    if (subjectsToPlan.length === 0) {
-        showAlert('Sin resultados', 'Ninguna de las materias seleccionadas tiene horarios que encajen en los turnos elegidos.');
-        return;
-    }
-
-    // 4. Algoritmo de Combinaciones (Fuerza Bruta Optimizado)
-    let validCombinations = [];
-    
-    function checkOverlap(combo, newGroup) {
-        for (let sub of combo) {
-            for (let s1 of sub.group.slots) {
-                for (let s2 of newGroup.slots) {
-                    if (s1.day === s2.day && s1.startMins < s2.endMins && s1.endMins > s2.startMins) {
-                        return true; // Hay superposición
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    function buildCombinations(idx, currentCombo) {
-        if (idx === subjectsToPlan.length) {
-            validCombinations.push([...currentCombo]);
-            return;
-        }
-        const currentSub = subjectsToPlan[idx];
-        
-        // Intentar con cada grupo de la materia actual
-        let added = false;
-        for (let group of currentSub.groups) {
-            if (!checkOverlap(currentCombo, group)) {
-                currentCombo.push({ subject: currentSub, group: group });
-                buildCombinations(idx + 1, currentCombo);
-                currentCombo.pop();
-                added = true;
-            }
-        }
-        
-        // Si la materia es flexible y no calza, podemos omitirla y seguir
-        if (currentSub.isFlexible) {
-            buildCombinations(idx + 1, currentCombo);
-        }
-    }
-
-    buildCombinations(0, []);
-
-    // 5. Filtrar, Puntuar y Clasificar
-    if (validCombinations.length === 0) {
-        showAlert('Conflicto de Horarios', 'No fue posible armar un horario sin superposiciones con estos turnos.');
-        return;
-    }
-
-    // Limpiar combinaciones vacías
-    validCombinations = validCombinations.filter(c => c.length > 0);
-
-    const scoredCombinations = validCombinations.map(combo => {
-        let daysUsed = new Set();
-        let totalGapsMins = 0;
-        
-        // Agrupar por día para calcular huecos
-        let byDay = {};
-        combo.forEach(c => {
-            c.group.slots.forEach(s => {
-                daysUsed.add(s.day);
-                if(!byDay[s.day]) byDay[s.day] = [];
-                byDay[s.day].push(s);
-            });
-        });
-
-        for(let d in byDay) {
-            byDay[d].sort((a,b) => a.startMins - b.startMins);
-            for(let i = 0; i < byDay[d].length - 1; i++) {
-                totalGapsMins += Math.max(0, byDay[d][i+1].startMins - byDay[d][i].endMins);
-            }
-        }
-
-        return { combo, daysCount: daysUsed.size, gaps: totalGapsMins, subjectCount: combo.length };
-    });
-
-    // Ordenar para buscar los mejores (prioriza más materias, luego menos huecos, luego menos días)
-    scoredCombinations.sort((a, b) => {
-        if(b.subjectCount !== a.subjectCount) return b.subjectCount - a.subjectCount;
-        if(a.gaps !== b.gaps) return a.gaps - b.gaps;
-        return a.daysCount - b.daysCount;
-    });
-
-    // Extraer Destacados
-    const bestCompact = scoredCombinations[0]; // El primero tras ordenar tiene menos gaps
-    
-    // Buscar el de menos días (que tenga la misma cantidad de materias máximas)
-    let maxSubs = scoredCombinations[0].subjectCount;
-    let bestFreeDays = scoredCombinations.filter(c => c.subjectCount === maxSubs).sort((a, b) => a.daysCount - b.daysCount)[0];
-
-    // 6. Renderizar Resultados
-    let renderCount = 0;
-    
-    // Función auxiliar para dibujar tarjetas
-    const renderCard = (title, data, badgeColor) => {
-        renderCount++;
-        const card = document.createElement('div');
-        card.className = 'org-proposal-card relative overflow-hidden';
-        
-        const badge = title ? `<div class="absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-lg" style="background-color: ${badgeColor};">${title}</div>` : '';
-        
-        let listHtml = data.combo.map(c => `
-            <div class="flex items-center gap-2 mb-1">
-                <span class="w-3 h-3 rounded-full" style="background-color: ${c.subject.color}"></span>
-                <span class="font-bold text-sm">${c.subject.name}</span>
-                <span class="text-xs text-gray-500">(${c.group.name})</span>
-            </div>
-        `).join('');
-
-        card.innerHTML = `
-            ${badge}
-            <h4 class="font-bold mb-2 ${title ? 'mt-2' : ''}">Opción ${renderCount}</h4>
-            <div class="mb-4">${listHtml}</div>
-            <div class="flex gap-4 text-xs font-semibold text-gray-600 dark:text-gray-400 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <span>📅 Días de cursada: ${data.daysCount}</span>
-                <span>⏳ Huecos libres: ${Math.floor(data.gaps / 60)}h ${data.gaps % 60}m</span>
-                <span>📚 Materias: ${data.subjectCount}</span>
-            </div>
-        `;
-        container.appendChild(card);
-    };
-
-    // Imprimir Destacados (Categorías)
-    renderCard('🔥 Más Compacto (Menos Huecos)', bestCompact, '#eab308');
-    
-    if(bestFreeDays && bestFreeDays !== bestCompact) {
-        renderCard('✈️ Más Días Libres', bestFreeDays, '#3b82f6');
-    }
-
-    // Imprimir el resto como opciones generales (hasta 10 para no saturar)
-    let othersRendered = 0;
-    for(let i = 0; i < scoredCombinations.length; i++) {
-        if(scoredCombinations[i] === bestCompact || scoredCombinations[i] === bestFreeDays) continue;
-        renderCard('', scoredCombinations[i], ''); // Sin categoría
-        othersRendered++;
-        if(othersRendered >= 8) break; // Límite de opciones adicionales
-    }
-
-    function showAlert(title, msg) {
-        alertCont.innerHTML = `<div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert"><p class="font-bold">${title}</p><p>${msg}</p></div>`;
-        alertCont.classList.remove('hidden');
-        resultsWrapper.classList.remove('hidden');
-    }
-};
-
-    /* =========================================================
-           LÓGICA DEL GENERADOR INTELIGENTE DE HORARIOS (CON MINI CALENDARIO Y APLICAR)
-        ========================================================= */
-
-        window.currentOrgProposals = [];
-
-        document.getElementById('btnGenerateSchedule').onclick = function() {
-            const container = document.getElementById('orgProposalsList');
-            const resultsWrapper = document.getElementById('orgResultsContainer');
-            const alertCont = document.getElementById('orgAlertContainer');
-            
-            container.innerHTML = '';
-            alertCont.classList.add('hidden');
-            resultsWrapper.classList.remove('hidden');
-
-            const timeToMins = t => { const [h,m] = t.split(':').map(Number); return (h * 60) + m; };
-
-            let shiftRanges = [];
-            if (document.getElementById('orgShiftMorning').checked) shiftRanges.push([timeToMins(document.getElementById('orgMorningStart').value), timeToMins(document.getElementById('orgMorningEnd').value)]);
-            if (document.getElementById('orgShiftAfternoon').checked) shiftRanges.push([timeToMins(document.getElementById('orgAfternoonStart').value), timeToMins(document.getElementById('orgAfternoonEnd').value)]);
-            if (document.getElementById('orgShiftNight').checked) shiftRanges.push([timeToMins(document.getElementById('orgNightStart').value), timeToMins(document.getElementById('orgNightEnd').value)]);
-
-            if (shiftRanges.length === 0) { showAlert('Error', 'Debes seleccionar al menos un turno.'); return; }
-
-            shiftRanges.sort((a,b) => a[0] - b[0]);
-            let mergedShifts = [];
-            let curr = shiftRanges[0];
-            for(let i = 1; i < shiftRanges.length; i++) {
-                if(shiftRanges[i][0] <= curr[1]) curr[1] = Math.max(curr[1], shiftRanges[i][1]);
-                else { mergedShifts.push(curr); curr = shiftRanges[i]; }
-            }
-            mergedShifts.push(curr);
-
-            const isSlotInShifts = (startMins, endMins) => mergedShifts.some(r => startMins >= r[0] && endMins <= r[1]);
-
-            const subjectsToPlan = [];
-            document.querySelectorAll('.org-option-box').forEach(box => {
-                if (!box.querySelector('.org-sub-include').checked) return;
-                const subId = box.dataset.subjectId;
-                const isFlexible = box.querySelector('.org-sub-flexible')?.checked || false;
-                const sub = getSubjectById(subId) || orgExternalSubjects.find(s => s.id === subId);
-                if(!sub) return;
-
-                const groups = [];
-                box.querySelectorAll('.org-group-item').forEach(gItem => {
-                    if(!gItem.querySelector('.org-grp-active').checked) return;
-                    const gName = gItem.querySelector('.text-xs.font-bold').textContent;
-                    const groupSlots = sub.schedule.filter(s => (s.groupName || 'Grupo Único') === gName);
-                    if(groupSlots.length === 0) return;
-
-                    let valid = true;
-                    let parsedSlots = [];
-                    for(let s of groupSlots) {
-                        const start = timeToMins(s.start);
-                        const end = timeToMins(s.end);
-                        if(!isSlotInShifts(start, end)) valid = false; 
-                        parsedSlots.push({...s, startMins: start, endMins: end});
-                    }
-                    if(valid) groups.push({ name: gName, slots: parsedSlots });
-                });
-
-                if(groups.length > 0) subjectsToPlan.push({ id: sub.id, name: sub.name, color: sub.color || '#3b82f6', isFlexible, groups });
-            });
-
-            if (subjectsToPlan.length === 0) { showAlert('Sin resultados', 'Ninguna materia encaja en los turnos elegidos.'); return; }
-
-            let validCombinations = [];
-            
-            function checkOverlap(combo, newGroup) {
-                for (let sub of combo) {
-                    for (let s1 of sub.group.slots) {
-                        for (let s2 of newGroup.slots) {
-                            if (s1.day === s2.day && s1.startMins < s2.endMins && s1.endMins > s2.startMins) return true; 
-                        }
-                    }
-                }
-                return false;
-            }
-
-            function buildCombinations(idx, currentCombo) {
-                if (idx === subjectsToPlan.length) { validCombinations.push([...currentCombo]); return; }
-                const currentSub = subjectsToPlan[idx];
-                
-                for (let group of currentSub.groups) {
-                    if (!checkOverlap(currentCombo, group)) {
-                        currentCombo.push({ subject: currentSub, group: group });
-                        buildCombinations(idx + 1, currentCombo);
-                        currentCombo.pop();
-                    }
-                }
-                if (currentSub.isFlexible) buildCombinations(idx + 1, currentCombo);
-            }
-
-            buildCombinations(0, []);
-
-            if (validCombinations.length === 0) { showAlert('Conflicto de Horarios', 'No fue posible armar un horario sin superposiciones.'); return; }
-
-            validCombinations = validCombinations.filter(c => c.length > 0);
-            const scoredCombinations = validCombinations.map((combo, index) => {
-                let daysUsed = new Set();
-                let totalGapsMins = 0;
-                let byDay = {};
-                
-                combo.forEach(c => {
-                    c.group.slots.forEach(s => {
-                        daysUsed.add(s.day);
-                        if(!byDay[s.day]) byDay[s.day] = [];
-                        byDay[s.day].push(s);
-                    });
-                });
-
-                for(let d in byDay) {
-                    byDay[d].sort((a,b) => a.startMins - b.startMins);
-                    for(let i = 0; i < byDay[d].length - 1; i++) totalGapsMins += Math.max(0, byDay[d][i+1].startMins - byDay[d][i].endMins);
-                }
-
-                return { originalIndex: index, combo, daysCount: daysUsed.size, gaps: totalGapsMins, subjectCount: combo.length };
-            });
-
-            scoredCombinations.sort((a, b) => {
-                if(b.subjectCount !== a.subjectCount) return b.subjectCount - a.subjectCount;
-                if(a.gaps !== b.gaps) return a.gaps - b.gaps;
-                return a.daysCount - b.daysCount;
-            });
-
-            window.currentOrgProposals = scoredCombinations;
-
-            const bestCompact = scoredCombinations[0];
-            let maxSubs = scoredCombinations[0].subjectCount;
-            let bestFreeDays = scoredCombinations.filter(c => c.subjectCount === maxSubs).sort((a, b) => a.daysCount - b.daysCount)[0];
-
-            const renderCard = (title, data, badgeColor, idx) => {
-                const card = document.createElement('div');
-                card.className = 'org-proposal-card relative overflow-hidden flex flex-col';
-                
-                const badge = title ? `<div class="absolute top-0 right-0 text-white text-xs font-bold px-3 py-1 rounded-bl-lg" style="background-color: ${badgeColor}; z-index: 10;">${title}</div>` : '';
-                
-                let miniGridHtml = `<div class="mini-sched-container mt-3 mb-4">`;
-                const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-                days.forEach(d => {
-                    miniGridHtml += `<div class="mini-sched-col"><div class="mini-sched-header">${d.substring(0,3)}</div>`;
-                    data.combo.forEach(c => {
-                        c.group.slots.filter(s => s.day === d).forEach(s => {
-                            const topPct = Math.max(0, ((s.startMins - 480) / 900) * 100);
-                            const heightPct = Math.min(100 - topPct, ((s.endMins - s.startMins) / 900) * 100);
-                            const isHybrid = s.modality === 'Híbrida/Semipresencial' ? '🏫💻 ' : s.modality === 'Virtual' ? '💻 ' : '🏫 ';
-                            
-                            miniGridHtml += `<div class="mini-sched-block" style="top: ${topPct}%; height: ${heightPct}%; background-color: ${c.subject.color};" title="${c.subject.name} - ${s.start} a ${s.end}">
-                                ${isHybrid}${c.subject.name.substring(0,8)}.
-                            </div>`;
-                        });
-                    });
-                    miniGridHtml += `</div>`;
-                });
-                miniGridHtml += `</div>`;
-
-                let listHtml = data.combo.map(c => `
-                    <div class="flex items-center justify-between border-b dark:border-gray-700 py-1 last:border-0">
-                        <div class="flex items-center gap-2">
-                            <span class="w-3 h-3 rounded-full" style="background-color: ${c.subject.color}"></span>
-                            <span class="font-bold text-sm">${c.subject.name}</span>
-                        </div>
-                        <span class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 rounded">${c.group.name}</span>
-                    </div>
-                `).join('');
-
-                card.innerHTML = `
-                    ${badge}
-                    <h4 class="font-bold text-lg mb-2 ${title ? 'mt-3' : ''}">Opción ${idx + 1}</h4>
-                    <div class="flex gap-3 text-xs font-semibold text-gray-600 dark:text-gray-400 mb-3 bg-blue-50 dark:bg-gray-800 p-2 rounded">
-                        <span>📅 ${data.daysCount} días</span>
-                        <span>⏳ ${Math.floor(data.gaps / 60)}h ${data.gaps % 60}m libres</span>
-                        <span>📚 ${data.subjectCount} materias</span>
-                    </div>
-                    ${miniGridHtml}
-                    <div class="mb-4 flex-grow">${listHtml}</div>
-                    <button onclick="applyOrganizerProposal(${idx})" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition transform hover:scale-105">
-                        ✅ Aplicar al Semestre
-                    </button>
-                `;
-                container.appendChild(card);
-            };
-
-            renderCard('🔥 Compacto (Menos Huecos)', bestCompact, '#eab308', 0);
-            
-            let renderedIndices = new Set([0]);
-            
-            if(bestFreeDays && bestFreeDays !== bestCompact) {
-                const freeDayIdx = scoredCombinations.indexOf(bestFreeDays);
-                renderCard('✈️ Más Días Libres', bestFreeDays, '#3b82f6', freeDayIdx);
-                renderedIndices.add(freeDayIdx);
-            }
-
-            let othersRendered = 0;
-            for(let i = 0; i < scoredCombinations.length; i++) {
-                if(renderedIndices.has(i)) continue;
-                renderCard('', scoredCombinations[i], '', i); 
-                othersRendered++;
-                if(othersRendered >= 8) break; 
-            }
-
-            function showAlert(title, msg) {
-                alertCont.innerHTML = `<div class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 rounded" role="alert"><p class="font-bold">${title}</p><p>${msg}</p></div>`;
-                alertCont.classList.remove('hidden');
-                resultsWrapper.classList.remove('hidden');
-            }
-        };
-
-        window.applyOrganizerProposal = function(index) {
-            const proposal = window.currentOrgProposals[index];
-            if(!proposal) return;
-            
-            const selVal = document.getElementById('orgSemesterSelect').value;
-            const [y, s] = selVal.split('|');
-            const semData = subjectsData.find(d => d.year === y && d.semester === s);
-            
-            if(!semData) {
-                showCustomAlert('Error', 'No se pudo encontrar el semestre de destino.');
-                return;
-            }
-
-            proposal.combo.forEach(c => {
-                const sub = semData.subjects.find(sub => sub.id === c.subject.id);
-                const cleanSchedule = JSON.parse(JSON.stringify(c.group.slots));
-                cleanSchedule.forEach(slot => { delete slot.startMins; delete slot.endMins; });
-
-                if(sub) {
-                    sub.schedule = cleanSchedule;
-                } else {
-                    const extSub = orgExternalSubjects.find(ex => ex.id === c.subject.id);
-                    if (extSub) {
-                        const newSub = JSON.parse(JSON.stringify(extSub));
-                        newSub.schedule = cleanSchedule;
-                        semData.subjects.push(newSub);
-                    }
-                }
-            });
-
-            saveSubjectsData();
-            showCustomAlert('¡Horarios Aplicados!', 'Los horarios se han guardado exitosamente en tu semestre. Puedes verlos en la pestaña del calendario de ese semestre.');
-            
-            loadOrganizerSubjects(); 
-            document.getElementById('orgResultsContainer').classList.add('hidden');
-        };
     
     </script>
 </body>
-    </html>
+</html>
